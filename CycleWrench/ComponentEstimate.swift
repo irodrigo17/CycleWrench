@@ -3,14 +3,16 @@ import Foundation
 struct MaintenanceEvent: Sendable {
     var bikeID: UUID?
     var component: String
+    var componentTitle: String?
     var action: String
     var date: Date
     var odometer: Double
     var unit: String
 
-    init(bikeID: UUID?, component: String, action: String, date: Date, odometer: Double, unit: String) {
+    init(bikeID: UUID?, component: String, action: String, date: Date, odometer: Double, unit: String, componentTitle: String? = nil) {
         self.bikeID = bikeID
         self.component = component
+        self.componentTitle = componentTitle
         self.action = action
         self.date = date
         self.odometer = odometer
@@ -19,7 +21,7 @@ struct MaintenanceEvent: Sendable {
 
     init(_ entry: ServiceEntry) {
         self.init(bikeID: entry.bikeID, component: entry.component, action: entry.action,
-                  date: entry.date, odometer: entry.odometer, unit: entry.distanceUnit)
+                  date: entry.date, odometer: entry.odometer, unit: entry.distanceUnit, componentTitle: entry.componentTitle)
     }
 }
 
@@ -28,7 +30,9 @@ struct ComponentEstimate: Identifiable {
         case pastAverage, approachingAverage, tracking, learning
     }
 
-    let component: BicycleComponent
+    let component: BicycleComponent?
+    let componentID: String
+    let componentTitle: String
     let action: ServiceAction
     let unit: String
     let averageInterval: Double?
@@ -36,7 +40,7 @@ struct ComponentEstimate: Identifiable {
     let distanceSinceLast: Double?
     let lastAction: ServiceAction
 
-    var id: String { "\(component.rawValue)-\(action.rawValue)" }
+    var id: String { "\(componentID)-\(action.rawValue)" }
     var remainingDistance: Double? {
         guard let averageInterval, let distanceSinceLast else { return nil }
         return averageInterval - distanceSinceLast
@@ -80,16 +84,18 @@ struct ComponentEstimate: Identifiable {
             return normalized
         }
         var estimates: [ComponentEstimate] = []
-        for component in BicycleComponent.allCases {
-            let history = bikeEvents.filter { $0.component == component.rawValue }.sorted {
+        for componentID in Set(bikeEvents.map(\.component)).sorted() {
+            let component = BicycleComponent(rawValue: componentID)
+            let history = bikeEvents.filter { $0.component == componentID }.sorted {
                 if $0.date != $1.date { return $0.date < $1.date }
                 if $0.odometer != $1.odometer { return $0.odometer < $1.odometer }
                 return $0.action < $1.action
             }
+            let title = component?.title ?? history.last?.componentTitle ?? componentID
             if let last = history.last,
                !history.contains(where: { $0.action == ServiceAction.replaced.rawValue ||
                                           $0.action == ServiceAction.serviced.rawValue }) {
-                estimates.append(ComponentEstimate(component: component, action: .unspecified, unit: unit,
+                estimates.append(ComponentEstimate(component: component, componentID: componentID, componentTitle: title, action: .unspecified, unit: unit,
                     averageInterval: nil, intervalCount: 0,
                     distanceSinceLast: odometer.isFinite && odometer >= last.odometer
                         ? odometer - last.odometer : nil, lastAction: .unspecified))
@@ -118,7 +124,7 @@ struct ComponentEstimate: Identifiable {
                 let mean = intervals.isEmpty ? nil : intervals.reduce(0) { $0 + $1 / Double(intervals.count) }
                 let since = odometer.isFinite && odometer >= lastReset.odometer
                     ? odometer - lastReset.odometer : nil
-                estimates.append(ComponentEstimate(component: component, action: action, unit: unit,
+                estimates.append(ComponentEstimate(component: component, componentID: componentID, componentTitle: title, action: action, unit: unit,
                     averageInterval: mean, intervalCount: intervals.count, distanceSinceLast: since,
                     lastAction: ServiceAction(rawValue: lastReset.action) ?? action))
             }

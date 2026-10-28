@@ -64,6 +64,25 @@ enum BikeStore {
         do { try context.save() } catch { context.rollback(); throw error }
     }
 
+    static func updateOdometer(_ bike: Bike, distance: Double, unit: String, in context: ModelContext) throws {
+        let entries = try context.fetch(FetchDescriptor<ServiceEntry>())
+        let readings = try context.fetch(FetchDescriptor<OdometerReading>())
+        let current = currentOdometer(for: bike, entries: entries, readings: readings)
+        guard distance.isFinite, distance >= 0,
+              let converted = DistanceUnit.convert(distance, from: unit, to: bike.distanceUnit),
+              converted + 0.000000001 >= current else {
+            throw OdometerError.invalid
+        }
+        bike.odometer = max(current, converted)
+        context.insert(OdometerReading(bike: bike))
+        do { try context.save() } catch { context.rollback(); throw error }
+    }
+
+    enum OdometerError: LocalizedError {
+        case invalid
+        var errorDescription: String? { "Enter a valid reading at least as high as the current odometer." }
+    }
+
     static func currentOdometer(for bike: Bike, entries: [ServiceEntry], readings: [OdometerReading]) -> Double {
         // Immutable readings protect against an older device overwriting Bike.odometer
         // with a stale value when iCloud merges offline changes.

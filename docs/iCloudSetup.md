@@ -23,7 +23,7 @@ cannot be restored after uninstalling.
    every current change has finished syncing.
 4. In CloudKit Console, verify that the development schema and records exist.
    If record types need explicit initialization, follow Apple's SwiftData schema
-   initialization procedure below using the same three model types and store URL.
+   initialization procedure below using the same four model types (Bike, ServiceEntry, OdometerReading, CustomComponent) and store URL.
 5. Deploy the development schema to Production in CloudKit Console before testing
    TestFlight/App Store builds. Development and Production are separate databases.
    Xcode/provisioning selects the appropriate environment when signing.

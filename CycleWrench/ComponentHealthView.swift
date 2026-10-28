@@ -72,7 +72,7 @@ struct ComponentEstimateRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(estimate.component.title).font(.headline)
+                Text(estimate.componentTitle).font(.headline)
                 Spacer()
                 Text(remainingText).font(.subheadline).foregroundStyle(tint)
                     .multilineTextAlignment(.trailing)

@@ -73,6 +73,13 @@ enum ComponentKind: String, CaseIterable, Identifiable {
         }
     }
 
+    var defaultAction: ServiceAction {
+        switch self {
+        case .fork, .rearShock, .dropperPost, .brakeBleed, .hubs, .headset, .motor: .serviced
+        default: .replaced
+        }
+    }
+
     func components(at position: ComponentPosition) -> [BicycleComponent] {
         let pair: (BicycleComponent, BicycleComponent)
         switch self {
@@ -125,10 +132,33 @@ final class ServiceEntry {
     var notes: String = ""
     var dateIsKnown: Bool = true
     var importSourceID: String? = nil
+    var componentName: String = ""
 
-    init(date: Date, odometer: Double, distanceUnit: String,
+    convenience init(date: Date, odometer: Double, distanceUnit: String,
          component: BicycleComponent, action: ServiceAction, bikeID: UUID? = nil,
          notes: String = "", dateIsKnown: Bool = true, importSourceID: String? = nil) {
+        self.init(date: date, odometer: odometer, distanceUnit: distanceUnit,
+            componentID: component.rawValue, componentName: component.title,
+            action: action, bikeID: bikeID, notes: notes, dateIsKnown: dateIsKnown,
+            importSourceID: importSourceID)
+    }
+
+    init(date: Date, odometer: Double, distanceUnit: String,
+         componentID: String, componentName: String, action: ServiceAction, bikeID: UUID,
+         notes: String = "") {
+        self.date = date
+        self.odometer = odometer
+        self.distanceUnit = distanceUnit
+        component = componentID
+        self.componentName = componentName
+        self.action = action.rawValue
+        self.bikeID = bikeID
+        self.notes = notes
+    }
+
+    private init(date: Date, odometer: Double, distanceUnit: String,
+         componentID: String, componentName: String, action: ServiceAction, bikeID: UUID?,
+         notes: String, dateIsKnown: Bool, importSourceID: String?) {
         self.notes = notes
         self.dateIsKnown = dateIsKnown
         self.importSourceID = importSourceID
@@ -136,11 +166,12 @@ final class ServiceEntry {
         self.date = date
         self.odometer = odometer
         self.distanceUnit = distanceUnit
-        self.component = component.rawValue
+        self.component = componentID
+        self.componentName = componentName
         self.action = action.rawValue
     }
 
     var componentTitle: String {
-        BicycleComponent(rawValue: component)?.title ?? component
+        BicycleComponent(rawValue: component)?.title ?? (componentName.isEmpty ? component : componentName)
     }
 }

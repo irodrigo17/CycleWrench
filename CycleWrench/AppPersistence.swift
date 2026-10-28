@@ -1,4 +1,5 @@
 import SwiftData
+import Foundation
 
 @MainActor
 enum AppPersistence {
@@ -15,9 +16,15 @@ enum AppPersistence {
     }
 
     static func makeContainer() throws -> ModelContainer {
-        let configuration = ModelConfiguration(cloudKitDatabase:
-            usesCloud ? .private(cloudContainerID) : .none)
-        return try ModelContainer(for: Bike.self, ServiceEntry.self, OdometerReading.self,
+        #if DEBUG
+        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || NSClassFromString("XCTestCase") != nil
+        #else
+        let isTesting = false
+        #endif
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: isTesting,
+            cloudKitDatabase: isTesting ? .none : (usesCloud ? .private(cloudContainerID) : .none))
+        return try ModelContainer(for: Bike.self, ServiceEntry.self, OdometerReading.self, CustomComponent.self,
                                   configurations: configuration)
     }
 }
