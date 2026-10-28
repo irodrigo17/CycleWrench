@@ -51,8 +51,20 @@ struct ComponentEstimate: Identifiable {
         if remainingDistance <= averageInterval * 0.2 { return .approachingAverage }
         return .tracking
     }
-    var intervalTitle: String { action == .replaced ? "Replacement life" : "Service interval" }
-    var sinceTitle: String { lastAction == .replaced ? "Since replacement" : "Since service" }
+    var intervalTitle: String {
+        switch action {
+        case .replaced: "Replacement life"
+        case .serviced: "Service interval"
+        case .unspecified: "Action not recorded"
+        }
+    }
+    var sinceTitle: String {
+        switch lastAction {
+        case .replaced: "Since replacement"
+        case .serviced: "Since service"
+        case .unspecified: "Since logged work"
+        }
+    }
 
     static func calculate(bikeID: UUID, odometer: Double, unit: String,
                           events: [MaintenanceEvent], now: Date = .now) -> [ComponentEstimate] {
@@ -74,7 +86,15 @@ struct ComponentEstimate: Identifiable {
                 if $0.odometer != $1.odometer { return $0.odometer < $1.odometer }
                 return $0.action < $1.action
             }
-            for action in ServiceAction.allCases {
+            if let last = history.last,
+               !history.contains(where: { $0.action == ServiceAction.replaced.rawValue ||
+                                          $0.action == ServiceAction.serviced.rawValue }) {
+                estimates.append(ComponentEstimate(component: component, action: .unspecified, unit: unit,
+                    averageInterval: nil, intervalCount: 0,
+                    distanceSinceLast: odometer.isFinite && odometer >= last.odometer
+                        ? odometer - last.odometer : nil, lastAction: .unspecified))
+            }
+            for action in ServiceAction.loggableCases {
                 guard history.contains(where: { $0.action == action.rawValue }) else { continue }
                 var previous: MaintenanceEvent?
                 var lastReset: MaintenanceEvent?
@@ -95,7 +115,7 @@ struct ComponentEstimate: Identifiable {
                     lastReset = event
                 }
                 guard let lastReset else { continue }
-                let mean = intervals.isEmpty ? nil : intervals.reduce(0, +) / Double(intervals.count)
+                let mean = intervals.isEmpty ? nil : intervals.reduce(0) { $0 + $1 / Double(intervals.count) }
                 let since = odometer.isFinite && odometer >= lastReset.odometer
                     ? odometer - lastReset.odometer : nil
                 estimates.append(ComponentEstimate(component: component, action: action, unit: unit,

@@ -17,7 +17,12 @@ struct MaintenanceLogView: View {
     }
     private var bikeEntries: [ServiceEntry] {
         guard let bike else { return [] }
-        return entries.filter { $0.bikeID == bike.id }
+        return entries.filter { $0.bikeID == bike.id }.sorted {
+            if $0.dateIsKnown != $1.dateIsKnown { return $0.dateIsKnown }
+            if $0.dateIsKnown && $0.date != $1.date { return $0.date > $1.date }
+            if $0.odometer != $1.odometer { return $0.odometer > $1.odometer }
+            return $0.component < $1.component
+        }
     }
     private var bikeReadings: [OdometerReading] {
         guard let bike else { return [] }
@@ -97,7 +102,7 @@ struct MaintenanceLogView: View {
                         }
                         if !odometerOnly {
                             Picker("Action", selection: $action) {
-                                ForEach(ServiceAction.allCases) { item in
+                                ForEach(ServiceAction.loggableCases) { item in
                                     Text(item.title).tag(item)
                                 }
                             }
@@ -118,6 +123,12 @@ struct MaintenanceLogView: View {
                                             }
                                         }
                                         .pickerStyle(.segmented)
+                                    }
+                                    if selection.kind != nil {
+                                        TextField(selection.kind == .bearings
+                                            ? "Which bearings? (optional)" : "Notes (optional)",
+                                            text: $selection.notes, axis: .vertical)
+                                            .font(.subheadline)
                                     }
                                     if selections.count > 1 {
                                         Button("Remove component", role: .destructive) {
@@ -144,9 +155,16 @@ struct MaintenanceLogView: View {
                         ForEach(bikeEntries) { entry in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(entry.componentTitle).font(.headline)
-                                Text("\(entry.action.capitalized) · \(displayDistance(entry.odometer, from: entry.distanceUnit)) \(preferredUnit)")
-                                Text(entry.date, style: .date)
-                                    .font(.caption).foregroundStyle(.secondary)
+                                Text("\(ServiceAction(rawValue: entry.action)?.title ?? entry.action.capitalized) · \(displayDistance(entry.odometer, from: entry.distanceUnit)) \(preferredUnit)")
+                                if !entry.notes.isEmpty {
+                                    Text(entry.notes).font(.subheadline).foregroundStyle(.secondary)
+                                }
+                                if entry.dateIsKnown {
+                                    Text(entry.date, style: .date)
+                                        .font(.caption).foregroundStyle(.secondary)
+                                } else {
+                                    Text("Date not recorded").font(.caption).foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -195,6 +213,12 @@ struct MaintenanceLogView: View {
                     }
                 } catch { saveError = error.localizedDescription }
             }
+            .onChange(of: bikes.map(\.id)) {
+                if let bike, bike.id.uuidString != selectedBikeID {
+                    selectedBikeID = bike.id.uuidString
+                    loadBike(bike)
+                }
+            }
             .onChange(of: preferredUnit) { oldUnit, newUnit in
                 if let distance, let converted = DistanceUnit.convert(distance, from: oldUnit, to: newUnit) {
                     odometer = String(converted)
@@ -229,6 +253,12 @@ struct MaintenanceLogView: View {
         odometerFocused = false
     }
 
+    private func notes(for component: BicycleComponent) -> String {
+        let notes = selections.filter { $0.kind?.components(at: $0.position).contains(component) == true }
+            .map { $0.notes.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        return Array(Set(notes)).sorted().joined(separator: "\n")
+    }
+
     private func save() {
         guard canSave, let bike, let distance else { return }
         let selected = odometerOnly ? Set<BicycleComponent>() : Set(selections.flatMap { selection in
@@ -239,7 +269,8 @@ struct MaintenanceLogView: View {
         context.insert(OdometerReading(bike: bike, date: date))
         for component in BicycleComponent.allCases where selected.contains(component) {
             context.insert(ServiceEntry(date: date, odometer: bike.odometer,
-                distanceUnit: bike.distanceUnit, component: component, action: action, bikeID: bike.id))
+                distanceUnit: bike.distanceUnit, component: component, action: action, bikeID: bike.id,
+                notes: notes(for: component)))
         }
         do {
             try context.save()
@@ -256,4 +287,5 @@ private struct ComponentSelection: Identifiable {
     let id = UUID()
     var kind: ComponentKind?
     var position = ComponentPosition.front
+    var notes = ""
 }

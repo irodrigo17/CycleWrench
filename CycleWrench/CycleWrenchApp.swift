@@ -42,14 +42,25 @@ private struct PersistenceRootView: View {
                 Task { await cloudStatus.refreshAccount() }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSPersistentCloudKitContainer.eventChangedNotification)) {
+        .onReceive(NotificationCenter.default.publisher(for: NSPersistentCloudKitContainer.eventChangedNotification)
+            .receive(on: RunLoop.main)) {
             cloudStatus.handle($0)
         }
     }
 
     private func openStore() {
         do {
-            container = try AppPersistence.makeContainer()
+            let opened = try AppPersistence.makeContainer()
+            #if DEBUG
+            if let encoded = ProcessInfo.processInfo.environment["CYCLEWRENCH_IMPORT_ARCHIVE"],
+               let data = Data(base64Encoded: encoded) {
+                let archive = try ServiceLogArchive.decode(data)
+                let imported = try ServiceLogImporter.importArchive(archive, into: opened.mainContext)
+                UserDefaults.standard.set(imported.bike.id.uuidString, forKey: "selectedBikeID")
+                UserDefaults.standard.set(archive.distanceUnit, forKey: "distanceUnit")
+            }
+            #endif
+            container = opened
             startupError = nil
         } catch {
             // Never replace a failed persistent store with an empty or in-memory store.

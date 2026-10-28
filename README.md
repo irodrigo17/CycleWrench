@@ -81,3 +81,10 @@ Signed device builds use private CloudKit sync. Apple Developer container setup,
 provisioning and Production schema deployment are required before distribution.
 See [setup and device acceptance checks](docs/iCloudSetup.md). Unsigned simulator
 builds store data locally; cloud restore has to be verified on signed devices.
+
+## Importing notes
+
+Use Settings → Import service log for a JSON archive. See [the import format](docs/ImportFormat.md).
+Undated entries retain their odometers and show “Date not recorded”. Bearings
+support freeform notes for frame pivots or any other assembly. Personal archives
+are excluded from the repository; no rider's actual service history is shipped.

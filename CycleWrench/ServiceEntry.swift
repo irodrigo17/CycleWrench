@@ -7,6 +7,7 @@ enum BicycleComponent: String, CaseIterable, Identifiable, Codable {
     case frontBrakePads, rearBrakePads, frontRotor, rearRotor
     case frontTire, rearTire, bottomBracket, headset
     case frontHub, rearHub, fork, rearShock, dropperPost
+    case bearings, frontBrakeFluid, rearBrakeFluid
 
     var id: String { rawValue }
     var title: String {
@@ -27,6 +28,9 @@ enum BicycleComponent: String, CaseIterable, Identifiable, Codable {
         case .fork: "Suspension fork"
         case .rearShock: "Rear shock"
         case .dropperPost: "Dropper post"
+        case .bearings: "Bearings"
+        case .frontBrakeFluid: "Front brake bleed"
+        case .rearBrakeFluid: "Rear brake bleed"
         }
     }
 }
@@ -35,7 +39,7 @@ enum BicycleComponent: String, CaseIterable, Identifiable, Codable {
 // Order favors frequently logged work; it is not a prescribed service schedule.
 enum ComponentKind: String, CaseIterable, Identifiable {
     case brakePads, chain, fork, rearShock, tires, dropperPost
-    case cassette, chainrings, rotors, hubs, bottomBracket, headset
+    case cassette, chainrings, rotors, brakeBleed, bearings, hubs, bottomBracket, headset
 
     var id: String { rawValue }
     var title: String {
@@ -49,6 +53,8 @@ enum ComponentKind: String, CaseIterable, Identifiable {
         case .cassette: "Cassette"
         case .chainrings: "Chainrings"
         case .rotors: "Brake rotors"
+        case .brakeBleed: "Brake bleed"
+        case .bearings: "Bearings"
         case .hubs: "Wheel hubs"
         case .bottomBracket: "Bottom bracket"
         case .headset: "Headset"
@@ -57,7 +63,7 @@ enum ComponentKind: String, CaseIterable, Identifiable {
 
     var hasPosition: Bool {
         switch self {
-        case .brakePads, .tires, .rotors, .hubs: true
+        case .brakePads, .tires, .rotors, .brakeBleed, .hubs: true
         default: false
         }
     }
@@ -69,6 +75,8 @@ enum ComponentKind: String, CaseIterable, Identifiable {
         case .tires: pair = (.frontTire, .rearTire)
         case .rotors: pair = (.frontRotor, .rearRotor)
         case .hubs: pair = (.frontHub, .rearHub)
+        case .brakeBleed: pair = (.frontBrakeFluid, .rearBrakeFluid)
+        case .bearings: return [.bearings]
         case .chain: return [.chain]
         case .fork: return [.fork]
         case .rearShock: return [.rearShock]
@@ -92,10 +100,11 @@ enum ComponentPosition: String, CaseIterable, Identifiable {
     var title: String { rawValue.capitalized }
 }
 
-enum ServiceAction: String, CaseIterable, Identifiable {
-    case replaced, serviced
+enum ServiceAction: String, CaseIterable, Identifiable, Codable {
+    case replaced, serviced, unspecified
+    static var loggableCases: [ServiceAction] { [.replaced, .serviced] }
     var id: String { rawValue }
-    var title: String { rawValue.capitalized }
+    var title: String { self == .unspecified ? "Work recorded" : rawValue.capitalized }
 }
 
 @Model
@@ -106,9 +115,16 @@ final class ServiceEntry {
     var component: String = ""
     var action: String = ""
     var bikeID: UUID? = nil
+    var notes: String = ""
+    var dateIsKnown: Bool = true
+    var importSourceID: String? = nil
 
     init(date: Date, odometer: Double, distanceUnit: String,
-         component: BicycleComponent, action: ServiceAction, bikeID: UUID? = nil) {
+         component: BicycleComponent, action: ServiceAction, bikeID: UUID? = nil,
+         notes: String = "", dateIsKnown: Bool = true, importSourceID: String? = nil) {
+        self.notes = notes
+        self.dateIsKnown = dateIsKnown
+        self.importSourceID = importSourceID
         self.bikeID = bikeID
         self.date = date
         self.odometer = odometer

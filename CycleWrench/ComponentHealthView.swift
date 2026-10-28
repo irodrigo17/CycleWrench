@@ -86,6 +86,9 @@ struct ComponentEstimateRow: View {
                 LabeledContent("Average", value: distance(average))
                 Text("Based on \(estimate.intervalCount) completed \(estimate.intervalCount == 1 ? "interval" : "intervals")")
                     .font(.caption).foregroundStyle(.secondary)
+            } else if estimate.action == .unspecified {
+                Text("Future replacements or services will start a known interval.")
+                    .font(.caption).foregroundStyle(.secondary)
             } else {
                 Text("Log another \(estimate.action == .replaced ? "replacement" : "service") to learn an interval.")
                     .font(.caption).foregroundStyle(.secondary)

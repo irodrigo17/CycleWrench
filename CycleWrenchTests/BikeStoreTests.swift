@@ -93,6 +93,46 @@ final class BikeStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testExistingMultiBikeStoreMigratesToCloudCompatibleDefaultsAndNotes() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("previous.store")
+        let id = UUID()
+        try writePreviousBikeStore(at: url, bikeID: id)
+        let container = try ModelContainer(for: Bike.self, ServiceEntry.self, OdometerReading.self,
+            configurations: ModelConfiguration(url: url, cloudKitDatabase: .none))
+        let context = container.mainContext
+        let bike = try XCTUnwrap(context.fetch(FetchDescriptor<Bike>()).first)
+        let entry = try XCTUnwrap(context.fetch(FetchDescriptor<ServiceEntry>()).first)
+        let reading = try XCTUnwrap(context.fetch(FetchDescriptor<OdometerReading>()).first)
+        XCTAssertEqual(bike.id, id)
+        XCTAssertEqual(bike.name, "Existing bike")
+        XCTAssertEqual(bike.distanceUnit, "mi")
+        XCTAssertEqual(bike.odometer, 600)
+        XCTAssertEqual(entry.bikeID, id)
+        XCTAssertEqual(entry.component, "rearBrakePads")
+        XCTAssertEqual(entry.odometer, 500)
+        XCTAssertEqual(entry.notes, "")
+        XCTAssertTrue(entry.dateIsKnown)
+        XCTAssertNil(entry.importSourceID)
+        XCTAssertEqual(reading.bikeID, id)
+        XCTAssertEqual(reading.distance, 600)
+    }
+
+    @MainActor
+    private func writePreviousBikeStore(at url: URL, bikeID: UUID) throws {
+        let container = try ModelContainer(for: PreviousBikeStore.Bike.self,
+            PreviousBikeStore.ServiceEntry.self, PreviousBikeStore.OdometerReading.self,
+            configurations: ModelConfiguration(url: url, cloudKitDatabase: .none))
+        let context = ModelContext(container)
+        context.insert(PreviousBikeStore.Bike(id: bikeID))
+        context.insert(PreviousBikeStore.ServiceEntry(bikeID: bikeID))
+        context.insert(PreviousBikeStore.OdometerReading(bikeID: bikeID))
+        try context.save()
+    }
+
+    @MainActor
     private func writeLegacyStore(at url: URL) throws {
         let container = try ModelContainer(for: OriginalStore.ServiceEntry.self,
             configurations: ModelConfiguration(url: url, cloudKitDatabase: .none))
@@ -117,6 +157,50 @@ private enum OriginalStore {
             distanceUnit = "km"
             component = "rearTire"
             action = "replaced"
+        }
+    }
+}
+
+// Schema from the multiple-bike release, before CloudKit defaults and notes.
+private enum PreviousBikeStore {
+    @Model final class Bike {
+        var id: UUID = UUID()
+        var name: String
+        var distanceUnit: String
+        var odometer: Double
+        init(id: UUID) {
+            self.id = id
+            name = "Existing bike"
+            distanceUnit = "mi"
+            odometer = 600
+        }
+    }
+    @Model final class ServiceEntry {
+        var date: Date
+        var odometer: Double
+        var distanceUnit: String
+        var component: String
+        var action: String
+        var bikeID: UUID? = nil
+        init(bikeID: UUID) {
+            self.bikeID = bikeID
+            date = .now
+            odometer = 500
+            distanceUnit = "mi"
+            component = "rearBrakePads"
+            action = "replaced"
+        }
+    }
+    @Model final class OdometerReading {
+        var bikeID: UUID
+        var date: Date
+        var distance: Double
+        var distanceUnit: String
+        init(bikeID: UUID) {
+            self.bikeID = bikeID
+            date = .now
+            distance = 600
+            distanceUnit = "mi"
         }
     }
 }
