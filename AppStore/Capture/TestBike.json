@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "id": "59DA36E1-2BBF-4C72-BC1B-6A34AB944D59",
+  "bikeName": "Test bike",
+  "distanceUnit": "mi",
+  "records": [
+    {
+      "id": "chain-300",
+      "component": "chain",
+      "action": "replaced",
+      "odometer": 300,
+      "date": "2026-07-13T12:00:00Z"
+    },
+    {
+      "id": "chain-1000",
+      "component": "chain",
+      "action": "replaced",
+      "odometer": 1000,
+      "date": "2026-08-10T12:00:00Z"
+    },
+    {
+      "id": "chain-1800",
+      "component": "chain",
+      "action": "replaced",
+      "odometer": 1800,
+      "date": "2026-09-11T12:00:00Z"
+    },
+    {
+      "id": "rearBrakePads-800",
+      "component": "rearBrakePads",
+      "action": "replaced",
+      "odometer": 800,
+      "date": "2026-08-02T12:00:00Z"
+    },
+    {
+      "id": "rearBrakePads-1400",
+      "component": "rearBrakePads",
+      "action": "replaced",
+      "odometer": 1400,
+      "date": "2026-08-26T12:00:00Z"
+    },
+    {
+      "id": "rearBrakePads-2000",
+      "component": "rearBrakePads",
+      "action": "replaced",
+      "odometer": 2000,
+      "date": "2026-09-19T12:00:00Z"
+    },
+    {
+      "id": "rearTire-500",
+      "component": "rearTire",
+      "action": "replaced",
+      "odometer": 500,
+      "date": "2026-07-21T12:00:00Z"
+    },
+    {
+      "id": "rearTire-1500",
+      "component": "rearTire",
+      "action": "replaced",
+      "odometer": 1500,
+      "date": "2026-08-30T12:00:00Z"
+    },
+    {
+      "id": "fork-400",
+      "component": "fork",
+      "action": "serviced",
+      "odometer": 400,
+      "date": "2026-07-17T12:00:00Z"
+    },
+    {
+      "id": "fork-1200",
+      "component": "fork",
+      "action": "serviced",
+      "odometer": 1200,
+      "date": "2026-08-18T12:00:00Z"
+    },
+    {
+      "id": "fork-2000",
+      "component": "fork",
+      "action": "serviced",
+      "odometer": 2000,
+      "date": "2026-09-19T12:00:00Z"
+    },
+    {
+      "id": "rearShock-400",
+      "component": "rearShock",
+      "action": "serviced",
+      "odometer": 400,
+      "date": "2026-07-17T12:00:00Z"
+    },
+    {
+      "id": "rearShock-1200",
+      "component": "rearShock",
+      "action": "serviced",
+      "odometer": 1200,
+      "date": "2026-08-18T12:00:00Z"
+    },
+    {
+      "id": "rearShock-2000",
+      "component": "rearShock",
+      "action": "serviced",
+      "odometer": 2000,
+      "date": "2026-09-19T12:00:00Z"
+    },
+    {
+      "id": "cassette-2300",
+      "component": "cassette",
+      "action": "replaced",
+      "odometer": 2300,
+      "date": "2026-10-01T12:00:00Z"
+    }
+  ],
+  "configuration": {
+    "drive": "electric",
+    "suspension": "fullSuspension",
+    "brakes": "hydraulicDisc"
+  }
+}

@@ -1,5 +1,7 @@
 # CycleWrench
 
+<img src="AppStore/Icon/CycleWrench-1024.png" alt="CycleWrench app icon" width="88" height="88">
+
 [![iOS CI](https://github.com/irodrigo17/CycleWrench/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/irodrigo17/CycleWrench/actions/workflows/build.yml)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://www.swift.org/)
 [![iOS 17+](https://img.shields.io/badge/iOS-17%2B-007AFF?logo=apple&logoColor=white)](project.yml)
@@ -12,6 +14,13 @@ and save. View your maintenance history in one list.
 
 Supports bicycle drivetrain, brakes, tires, bearings and suspension components.
 Built with SwiftUI and SwiftData. No separate app account, analytics, or third-party dependencies. Signed device builds use private iCloud sync.
+
+<p>
+  <img src="AppStore/Screenshots/iPhone/01-home.png" alt="CycleWrench logging screen" width="230">
+  <img src="AppStore/Screenshots/iPhone/02-components.png" alt="Personal component lifespan estimates" width="230">
+</p>
+
+[App Store media](AppStore/) · [Competitor research](docs/CompetitorResearch.md)
 
 ## Get started
 
