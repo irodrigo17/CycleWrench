@@ -12,8 +12,9 @@ cannot be restored after uninstalling.
 1. In Apple Developer Certificates, Identifiers & Profiles, enable iCloud (CloudKit)
    and Push Notifications for `com.cyclewrench`. Create the container
    `iCloud.com.cyclewrench` and assign it to this App ID.
-2. Run `make generate`. Open the generated Xcode project, select your development
-   team, and refresh automatic provisioning. Keep team/signing credentials local.
+2. Run `make generate`. The generated project inherits development team
+   `K3CQQKBR25` from `project.yml`. Open it in Xcode, sign into the owning developer
+   account and refresh automatic provisioning. Keep signing credentials local.
    The iCloud container entitlement and remote-notification background mode are
    generated from `project.yml`.
 3. Run a signed development build on a device signed into iCloud, with iCloud

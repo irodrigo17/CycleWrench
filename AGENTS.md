@@ -15,7 +15,8 @@ odometer → select serviced/replaced components → save → history.
 - Keep front/rear components separate. Support all bicycles, not motorcycles.
 - Add meaningful tests for future lifespan calculations and data migrations.
 - Make focused commits as work is completed; keep private rider archives out of Git.
-- Never commit signing identities, profiles, API keys, or developer-specific settings.
+- Never commit signing identities, profiles, API keys, or contributor-local signing overrides.
+- `project.yml` intentionally contains the default project team ID; it is not a signing credential.
 
 ## Product constraints
 - Distances have explicit units; never subtract miles from kilometers.

@@ -32,8 +32,11 @@ make generate
 open CycleWrench.xcodeproj
 ```
 
-Choose an iOS simulator and run. For a device, select your development team in
-Xcode and use the bundle identifier registered in your Apple Developer account.
+Choose an iOS simulator and run. Device builds default to development team
+`K3CQQKBR25` from `project.yml`, so regenerating the project preserves that choice.
+Sign in to the owning Apple Developer account in Xcode for automatic provisioning.
+Contributors can override `DEVELOPMENT_TEAM` when building; device builds under
+another team also need their own bundle identifier and CloudKit container.
 The registered app identifier is `com.cyclewrench`. Configure the private CloudKit
 container `iCloud.com.cyclewrench` following [iCloud setup](docs/iCloudSetup.md). Never commit developer-specific signing changes.
 
