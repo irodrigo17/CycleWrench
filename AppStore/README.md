@@ -12,3 +12,5 @@ not generated UI or claims about unverified iCloud/Bosch integrations.
 
 See [the media manifest](../docs/AppStoreMedia.md) for capture details, integration
 and current Apple specifications. Do not substitute personal rider data in media.
+
+The icon uses a multicolor sculpted design; the app UI uses native system colors.

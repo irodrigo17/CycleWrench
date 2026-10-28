@@ -7,7 +7,7 @@ Prepared October 27, 2026 from Apple's current [asset best practices](https://de
 | Asset | File(s) | Specification / purpose |
 |---|---|---|
 | App icon | `AppStore/Icon/CycleWrench-1024.png` | 1024×1024 opaque RGB PNG, square canvas; iOS applies its own mask |
-| Native launch screen | `AppStore/Launch/LaunchScreen.storyboard` | Adaptive warm ivory / forest background, light/dark and orientation aware, no text/logo/delay |
+| Native launch screen | `AppStore/Launch/LaunchScreen.storyboard` | Adaptive system grouped background, light/dark and orientation aware, no text/logo/delay |
 | iPhone screenshots | `AppStore/Screenshots/iPhone/01-home.png` through `04-custom-components.png` | 1206×2622 opaque PNG, Dynamic Island medium display |
 | iPad screenshots | `AppStore/Screenshots/iPad/01-home.png` through `04-custom-components.png` | 2064×2752 opaque PNG, iPad 13-inch display |
 | Capture data | `AppStore/Capture/TestBike.json` | Synthetic **Test bike** only, with demonstration dates and odometers |
@@ -45,8 +45,7 @@ families. Original XCUITest attachments and capture harness remain in ignored
 
 Apple recommends a launch screen that resembles the initial UI and avoids logos
 or fixed text. CycleWrench should reach the maintenance form immediately, so the
-handoff is an adaptive `CanvasColor` storyboard (warm ivory in light mode and
-matte forest in dark mode). It intentionally
+handoff is an adaptive `systemGroupedBackgroundColor` storyboard. It intentionally
 adds no extra splash screen or timed animation. See [Apple's launching guidance](https://developer.apple.com/design/human-interface-guidelines/launching).
 
 The launch resource is integrated at `CycleWrench/LaunchScreen.storyboard` and
@@ -90,8 +89,9 @@ After the split-layout revision, isolated iPad captures show logging/sidebar on 
 left and selected Components or Service history on the right. Phone captures keep
 the single-column flow and reordered sections. A synthetic unsaved `2400` odometer
 draft survived navigation into Components and History and back on both iPhone
-and iPad. Each device family passed both capture and draft-retention UI tests. The final capture set includes the forest/sage/ochre styling, stronger odometer
-numerals and personal-estimate cards. The screenshots use native 9:41 status-bar
+and iPad. Each device family passed both capture and draft-retention UI tests. The final capture set uses native system backgrounds, system-blue controls and
+system semantic status colors, with stronger odometer numerals and personal-estimate
+cards. The multicolor sculpted palette applies to the app icon only. The screenshots use native 9:41 status-bar
 overrides and full battery.
 
 ### iPhone Duo coverage

@@ -1,14 +1,14 @@
 import SwiftUI
 
 enum CycleWrenchStyle {
-    static let canvas = Color("CanvasColor")
-    static let card = Color("CardColor")
+    static let canvas = Color(uiColor: .systemGroupedBackground)
+    static let card = Color(uiColor: .secondarySystemGroupedBackground)
 
     static func statusColor(_ attention: ComponentEstimate.Attention) -> Color {
         switch attention {
-        case .pastAverage: Color("CriticalColor")
-        case .approachingAverage: Color("AttentionColor")
-        case .tracking: .accentColor
+        case .pastAverage: Color(uiColor: .systemRed)
+        case .approachingAverage: Color(uiColor: .systemOrange)
+        case .tracking: Color(uiColor: .systemGreen)
         case .learning: .secondary
         }
     }

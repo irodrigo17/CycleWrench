@@ -35,7 +35,7 @@ private struct PersistenceRootView: View {
                     .background(CycleWrenchStyle.canvas)
             }
         }
-        .tint(.accentColor)
+        .tint(Color(uiColor: .systemBlue))
         .task {
             if container == nil { openStore() }
             await cloudStatus.refreshAccount()
