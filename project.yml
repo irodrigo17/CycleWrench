@@ -25,6 +25,8 @@ targets:
     info:
       path: CycleWrench/Info.plist
       properties:
+        # Expanded by Xcode: ordinary signed runs use iCloud, unsigned CI stays local.
+        CycleWrenchCloudSyncEnabled: $(CODE_SIGNING_ALLOWED)
         UIBackgroundModes: [remote-notification]
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:

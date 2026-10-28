@@ -29,9 +29,27 @@ cannot be restored after uninstalling.
    TestFlight/App Store builds. Development and Production are separate databases.
    Xcode/provisioning selects the appropriate environment when signing.
 
-Unsigned simulator builds deliberately use local storage with the same schema.
-They do not sync to iCloud and Settings explicitly reports this. Do not interpret
-passing simulator tests as proof of cloud upload, download, or restore.
+## Simulator and test builds
+
+CloudKit works in Simulator too. Normal Xcode builds with code signing enabled
+use private iCloud sync on both simulators and devices; there is no simulator-wide
+opt-out in the app. In the simulator's **Settings** app, sign into an Apple Account
+and enable iCloud for CycleWrench. Xcode's account is the developer/signing account;
+the account inside the simulator owns the synced user data. They are separate
+sign-ins.
+
+`project.yml` expands `CycleWrenchCloudSyncEnabled` from `CODE_SIGNING_ALLOWED` into
+the app's Info.plist. `make build`/`make test` explicitly set signing to NO so those
+builds remain local without contacting iCloud. Debug launch environment
+`CYCLEWRENCH_LOCAL_ONLY=1` can also force local storage for synthetic media capture.
+Automated test hosts always use an isolated in-memory store, even if signing is on.
+Unsigned/local and signed/cloud builds keep the same store URL, so enabling sync
+can adopt existing local records without deleting the store.
+
+Settings now reports the actual account state on cloud-enabled builds. Account
+availability alone is not confirmation of upload or restore. Sign in separately
+on every test simulator; do account-backed tests only with a disposable test bike
+and test account/store. Do not use the rider's Orbea Wild as a test fixture.
 
 ## Required device acceptance check
 
@@ -62,6 +80,7 @@ within an installation and every stored distance carries its original unit.
 ## References
 
 - [Apple: Syncing model data across a person's devices](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices)
+- [Apple: Enabling CloudKit in your app](https://developer.apple.com/documentation/cloudkit/enabling-cloudkit-in-your-app)
 - [Apple: Setting up Core Data with CloudKit](https://developer.apple.com/documentation/coredata/setting-up-core-data-with-cloudkit)
 
 Custom component restrictions use defaulted scalar fields, so existing catalog

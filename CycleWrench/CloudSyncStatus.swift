@@ -5,8 +5,15 @@ import Observation
 @MainActor
 @Observable
 final class CloudSyncStatus {
-    var accountMessage = AppPersistence.usesCloud ? "Checking iCloud account…" : "Local storage in simulator"
+    var accountMessage: String = {
+        switch AppPersistence.mode {
+        case .privateCloud: "Checking iCloud account…"
+        case .localOnly: "Local-only build"
+        case .inMemoryTests: "In-memory test data"
+        }
+    }()
     var accountAvailable = false
+    var accountError: String?
     var lastUpload: Date?
     var lastDownload: Date?
     var syncError: String?
@@ -18,10 +25,11 @@ final class CloudSyncStatus {
         guard AppPersistence.usesCloud else { return }
         do {
             let status = try await CKContainer(identifier: AppPersistence.cloudContainerID).accountStatus()
+            accountError = nil
             accountAvailable = status == .available
             switch status {
             case .available: accountMessage = "iCloud account available"
-            case .noAccount: accountMessage = "Sign in to iCloud in device Settings"
+            case .noAccount: accountMessage = "Sign in to iCloud in Settings"
             case .restricted: accountMessage = "iCloud access is restricted"
             case .temporarilyUnavailable: accountMessage = "iCloud temporarily unavailable"
             case .couldNotDetermine: accountMessage = "Couldn’t check iCloud account"
@@ -30,7 +38,7 @@ final class CloudSyncStatus {
         } catch {
             accountAvailable = false
             accountMessage = "Couldn’t check iCloud account"
-            syncError = error.localizedDescription
+            accountError = error.localizedDescription
         }
     }
 

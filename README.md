@@ -107,8 +107,9 @@ Manual app checks must use a test bike, never the rider's Orbea Wild.
 
 Signed device builds use private CloudKit sync. Apple Developer container setup,
 provisioning and Production schema deployment are required before distribution.
-See [setup and device acceptance checks](docs/iCloudSetup.md). Unsigned simulator
-builds store data locally; cloud restore has to be verified on signed devices.
+See [setup and device acceptance checks](docs/iCloudSetup.md). Unsigned builds store data locally. Normal signed Xcode runs can sync on a
+simulator or device signed into iCloud. Actual upload/download and restore still
+need account-backed acceptance testing.
 
 ## Importing notes
 

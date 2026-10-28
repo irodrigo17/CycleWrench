@@ -30,6 +30,6 @@ odometer → select serviced/replaced components → save → history.
 - Signed device builds use the private CloudKit container `iCloud.com.cyclewrench`.
 - Keep synced fields optional or provide defaults; do not add unique constraints.
 - Preserve existing stores on startup/migration failures. Never silently reset data.
-- Simulator builds use local storage; cloud sync requires signed-device verification.
+- Signed builds can sync on simulators and devices. Unsigned builds remain local; automated tests use isolated in-memory storage.
 - Units are an app-wide display preference. Convert stored readings explicitly before comparing them.
 - Undated imports must remain visibly undated. Unknown work must not become an inferred replacement.

@@ -30,6 +30,9 @@ struct SettingsView: View {
                     if let date = cloudStatus.lastDownload {
                         LabeledContent("Last download this session") { Text(date, style: .relative) }
                     }
+                    if let error = cloudStatus.accountError {
+                        Text(error).font(.caption).foregroundStyle(.red)
+                    }
                     if let error = cloudStatus.syncError {
                         Text(error).font(.caption).foregroundStyle(.red)
                     }
@@ -43,7 +46,7 @@ struct SettingsView: View {
                 } footer: {
                     Text(AppPersistence.usesCloud
                         ? "Bikes and history sync privately through your iCloud account. Changes save on this device first. Let uploads finish before deleting the app; only uploaded data can be restored after reinstalling."
-                        : "This simulator build stores data locally. Use a signed device build with iCloud enabled to sync and restore data.")
+                        : "This build stores data locally. Run a signed Xcode build with CloudKit configured to enable iCloud on a simulator or device.")
                 }
                 Section("Your data") {
                     NavigationLink("Import service log") { ImportServiceLogView() }
