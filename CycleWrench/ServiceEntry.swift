@@ -100,11 +100,11 @@ enum ServiceAction: String, CaseIterable, Identifiable {
 
 @Model
 final class ServiceEntry {
-    var date: Date
-    var odometer: Double
-    var distanceUnit: String
-    var component: String
-    var action: String
+    var date: Date = Date()
+    var odometer: Double = 0
+    var distanceUnit: String = "km"
+    var component: String = ""
+    var action: String = ""
     var bikeID: UUID? = nil
 
     init(date: Date, odometer: Double, distanceUnit: String,

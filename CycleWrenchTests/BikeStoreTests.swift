@@ -6,7 +6,7 @@ final class BikeStoreTests: XCTestCase {
     @MainActor
     func testLegacyAdoptionConvertsUnitsAndIsIdempotent() throws {
         let container = try ModelContainer(for: Bike.self, ServiceEntry.self, OdometerReading.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
         let context = container.mainContext
         let older = ServiceEntry(date: .now.addingTimeInterval(-100), odometer: 100,
             distanceUnit: "mi", component: .chain, action: .replaced)
@@ -37,7 +37,7 @@ final class BikeStoreTests: XCTestCase {
     @MainActor
     func testOdometerUpdatePersistsWithoutServiceAndDoesNotChangeOtherBike() throws {
         let container = try ModelContainer(for: Bike.self, ServiceEntry.self, OdometerReading.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
         let context = container.mainContext
         let first = Bike(name: "Gravel", distanceUnit: "mi", odometer: 100)
         let second = Bike(name: "MTB", odometer: 250)
@@ -65,7 +65,7 @@ final class BikeStoreTests: XCTestCase {
         let url = folder.appendingPathComponent("migration.store")
         try writeLegacyStore(at: url)
         let container = try ModelContainer(for: Bike.self, ServiceEntry.self, OdometerReading.self,
-            configurations: ModelConfiguration(url: url))
+            configurations: ModelConfiguration(url: url, cloudKitDatabase: .none))
         let context = container.mainContext
         try BikeStore.adoptLegacyEntries(in: context, preferredUnit: "km")
         let entries = try context.fetch(FetchDescriptor<ServiceEntry>())
@@ -79,9 +79,23 @@ final class BikeStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testCurrentOdometerCannotRegressWhenAnOlderDeviceSyncs() throws {
+        let bike = Bike(name: "Gravel", odometer: 100)
+        let other = Bike(name: "Other bike", odometer: 9000)
+        bike.odometer = 150
+        let reading = OdometerReading(bike: bike)
+        bike.odometer = 100 // Simulate the stale Bike record winning a cloud merge.
+        let entry = ServiceEntry(date: .now, odometer: 100, distanceUnit: "mi",
+            component: .chain, action: .replaced, bikeID: bike.id)
+        let unrelated = OdometerReading(bike: other)
+        XCTAssertEqual(BikeStore.currentOdometer(for: bike, entries: [entry], readings: [reading, unrelated]),
+                       160.9344, accuracy: 0.0001)
+    }
+
+    @MainActor
     private func writeLegacyStore(at url: URL) throws {
         let container = try ModelContainer(for: OriginalStore.ServiceEntry.self,
-            configurations: ModelConfiguration(url: url))
+            configurations: ModelConfiguration(url: url, cloudKitDatabase: .none))
         let context = ModelContext(container)
         context.insert(OriginalStore.ServiceEntry())
         try context.save()

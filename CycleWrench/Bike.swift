@@ -4,9 +4,9 @@ import SwiftData
 @Model
 final class Bike {
     var id: UUID = UUID()
-    var name: String
-    var distanceUnit: String
-    var odometer: Double
+    var name: String = ""
+    var distanceUnit: String = "km"
+    var odometer: Double = 0
 
     init(name: String, distanceUnit: String = "km", odometer: Double = 0) {
         self.name = name
@@ -17,10 +17,10 @@ final class Bike {
 
 @Model
 final class OdometerReading {
-    var bikeID: UUID
-    var date: Date
-    var distance: Double
-    var distanceUnit: String
+    var bikeID: UUID = UUID()
+    var date: Date = Date()
+    var distance: Double = 0
+    var distanceUnit: String = "km"
 
     init(bike: Bike, date: Date = .now) {
         bikeID = bike.id
@@ -45,8 +45,20 @@ enum BikeStore {
         do { try context.save() } catch { context.rollback(); throw error }
     }
 
+    static func currentOdometer(for bike: Bike, entries: [ServiceEntry], readings: [OdometerReading]) -> Double {
+        // Immutable readings protect against an older device overwriting Bike.odometer
+        // with a stale value when iCloud merges offline changes.
+        let serviceDistances = entries.filter { $0.bikeID == bike.id }.compactMap {
+            DistanceUnit.convert($0.odometer, from: $0.distanceUnit, to: bike.distanceUnit)
+        }
+        let readingDistances = readings.filter { $0.bikeID == bike.id }.compactMap {
+            DistanceUnit.convert($0.distance, from: $0.distanceUnit, to: bike.distanceUnit)
+        }
+        return ([bike.odometer] + serviceDistances + readingDistances)
+            .filter { $0.isFinite && $0 >= 0 }.max() ?? 0
+    }
+
     static func convert(_ distance: Double, from: String, to: String) -> Double {
-        guard from != to else { return distance }
-        return from == "mi" ? distance * 1.609344 : distance / 1.609344
+        DistanceUnit.convert(distance, from: from, to: to) ?? distance
     }
 }

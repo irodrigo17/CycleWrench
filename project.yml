@@ -15,9 +15,19 @@ targets:
     type: application
     platform: iOS
     sources: [CycleWrench]
+    entitlements:
+      path: CycleWrench/CycleWrench.entitlements
+      properties:
+        com.apple.developer.icloud-container-identifiers: [iCloud.com.cyclewrench]
+        com.apple.developer.icloud-services: [CloudKit]
+        aps-environment: development
+    info:
+      path: CycleWrench/Info.plist
+      properties:
+        UIBackgroundModes: [remote-notification]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.irodrigo17.CycleWrench
+        PRODUCT_BUNDLE_IDENTIFIER: com.cyclewrench
         TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_CFBundleDisplayName: CycleWrench
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.sports
@@ -31,7 +41,7 @@ targets:
       - target: CycleWrench
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.irodrigo17.CycleWrenchTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.cyclewrench.tests
 schemes:
   CycleWrench:
     build:

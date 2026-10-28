@@ -12,7 +12,9 @@ struct MaintenanceLogView: View {
     @State private var showingSettings = false
     @State private var odometerOnly = false
 
-    private var bike: Bike? { bikes.first { $0.id.uuidString == selectedBikeID } }
+    private var bike: Bike? {
+        bikes.first { $0.id.uuidString == selectedBikeID } ?? bikes.first
+    }
     private var bikeEntries: [ServiceEntry] {
         guard let bike else { return [] }
         return entries.filter { $0.bikeID == bike.id }
@@ -149,7 +151,7 @@ struct MaintenanceLogView: View {
                         }
                     }
                     if !bikeReadings.isEmpty {
-                        Section("Odometer updates") {
+                        Section("Odometer history") {
                             ForEach(bikeReadings) { reading in
                                 HStack {
                                     Text(reading.date, style: .date)
@@ -212,7 +214,8 @@ struct MaintenanceLogView: View {
     }
 
     private func displayedOdometer(_ bike: Bike) -> Double {
-        DistanceUnit.convert(bike.odometer, from: bike.distanceUnit, to: preferredUnit) ?? bike.odometer
+        DistanceUnit.convert(BikeStore.currentOdometer(for: bike, entries: entries, readings: readings),
+                             from: bike.distanceUnit, to: preferredUnit) ?? bike.odometer
     }
 
     private func displayDistance(_ distance: Double, from unit: String) -> String {
@@ -233,9 +236,7 @@ struct MaintenanceLogView: View {
         })
         let date = Date()
         bike.odometer = DistanceUnit.convert(distance, from: preferredUnit, to: bike.distanceUnit) ?? distance
-        if odometerOnly {
-            context.insert(OdometerReading(bike: bike, date: date))
-        }
+        context.insert(OdometerReading(bike: bike, date: date))
         for component in BicycleComponent.allCases where selected.contains(component) {
             context.insert(ServiceEntry(date: date, odometer: bike.odometer,
                 distanceUnit: bike.distanceUnit, component: component, action: action, bikeID: bike.id))

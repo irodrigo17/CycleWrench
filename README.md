@@ -5,7 +5,7 @@ Enter your current odometer, select the components you replaced or serviced,
 and save. View your maintenance history in one list.
 
 Supports bicycle drivetrain, brakes, tires, bearings and suspension components.
-Built with SwiftUI and SwiftData. No accounts, analytics, or third-party dependencies.
+Built with SwiftUI and SwiftData. No separate app account, analytics, or third-party dependencies. Signed device builds use private iCloud sync.
 
 ## Get started
 
@@ -19,8 +19,8 @@ open CycleWrench.xcodeproj
 
 Choose an iOS simulator and run. For a device, select your development team in
 Xcode and use the bundle identifier registered in your Apple Developer account.
-The default identifier `com.irodrigo17.CycleWrench` is a placeholder until verified
-against App Store Connect. Never commit developer-specific signing changes.
+The registered app identifier is `com.cyclewrench`. Configure the private CloudKit
+container `iCloud.com.cyclewrench` following [iCloud setup](docs/iCloudSetup.md). Never commit developer-specific signing changes.
 
 ```sh
 make build
@@ -74,3 +74,10 @@ xcodebuild -project CycleWrench.xcodeproj -scheme CycleWrench \
 
 Tests cover migration from the original on-disk schema, idempotent legacy
 adoption with mixed distance units, and odometer updates isolated by bike.
+
+## iCloud
+
+Signed device builds use private CloudKit sync. Apple Developer container setup,
+provisioning and Production schema deployment are required before distribution.
+See [setup and device acceptance checks](docs/iCloudSetup.md). Unsigned simulator
+builds store data locally; cloud restore has to be verified on signed devices.
