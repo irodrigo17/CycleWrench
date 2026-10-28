@@ -52,6 +52,8 @@ struct ServiceHistoryView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(CycleWrenchStyle.canvas)
         .navigationTitle("Service history")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {

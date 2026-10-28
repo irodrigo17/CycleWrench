@@ -62,3 +62,7 @@ within an installation and every stored distance carries its original unit.
 
 - [Apple: Syncing model data across a person's devices](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices)
 - [Apple: Setting up Core Data with CloudKit](https://developer.apple.com/documentation/coredata/setting-up-core-data-with-cloudkit)
+
+Custom component restrictions use defaulted scalar fields, so existing catalog
+items migrate as unrestricted and sync with their definitions. Restriction changes
+do not alter stored service entries or their component-name snapshots.

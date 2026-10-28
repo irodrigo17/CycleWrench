@@ -32,9 +32,10 @@ private struct PersistenceRootView: View {
             } else {
                 ProgressView("Opening your bikes…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(uiColor: .systemGroupedBackground))
+                    .background(CycleWrenchStyle.canvas)
             }
         }
+        .tint(.accentColor)
         .task {
             if container == nil { openStore() }
             await cloudStatus.refreshAccount()

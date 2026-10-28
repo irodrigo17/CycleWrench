@@ -12,9 +12,15 @@ struct MaintenanceLogView: View {
     @State private var activeSheet: Sheet?
     @State private var odometer = ""
     @State private var selections = [ComponentSelection()]
+    @State private var didLoadStore = false
+    @State private var selectedPanel: Panel?
+    @State private var compactColumn = NavigationSplitViewColumn.sidebar
     @State private var saveError: String?
     @FocusState private var odometerFocused: Bool
 
+    private enum Panel: String, Hashable {
+        case components, history
+    }
     private enum Sheet: String, Identifiable {
         case addBike, bikeSetup, settings, odometer, customComponent
         var id: String { rawValue }
@@ -30,7 +36,7 @@ struct MaintenanceLogView: View {
     }
     private var availableComponents: [ComponentDescriptor] {
         ComponentKind.allCases.filter { bike?.configuration.supports($0) ?? true }.map(ComponentDescriptor.init)
-            + customComponents.map(\.descriptor)
+            + customComponents.filter { $0.restrictions.matches(bike?.configuration ?? BikeConfiguration()) }.map(\.descriptor)
     }
     private var distance: Double? {
         guard let value = Double(odometer), value.isFinite, value >= 0 else { return nil }
@@ -45,9 +51,9 @@ struct MaintenanceLogView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Bike") {
+        NavigationSplitView(preferredCompactColumn: $compactColumn) {
+            List(selection: $selectedPanel) {
+                Section {
                     if !bikes.isEmpty {
                         Picker("Bike", selection: $selectedBikeID) {
                             ForEach(bikes) { Text($0.name).tag($0.id.uuidString) }
@@ -68,6 +74,7 @@ struct MaintenanceLogView: View {
                                 Text("Current odometer").foregroundStyle(.primary)
                                 Spacer()
                                 Text("\(displayedOdometer(bike).formatted(.number.precision(.fractionLength(0...1)))) \(preferredUnit)")
+                                    .font(.system(.headline, design: .rounded)).monospacedDigit()
                                 Image(systemName: "pencil").font(.caption)
                             }
                         }
@@ -75,24 +82,6 @@ struct MaintenanceLogView: View {
                     }
                 }
                 if let bike {
-                    Section {
-                        NavigationLink {
-                            ComponentHealthView(bikeName: bike.name, estimates: componentEstimates)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label("Components", systemImage: "chart.bar.xaxis")
-                                if let next = componentEstimates.first, let remaining = next.remainingDistance {
-                                    Text("\(next.componentTitle) · ~\(abs(remaining).formatted(.number.precision(.fractionLength(0)))) \(preferredUnit) \(remaining <= 0 ? "past average" : "left")")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        NavigationLink {
-                            ServiceHistoryView(bikeID: bike.id, bikeName: bike.name)
-                        } label: {
-                            Label("Service history", systemImage: "clock.arrow.circlepath")
-                        }
-                    }
                     Section("Log maintenance") {
                         HStack {
                             TextField("Odometer", text: $odometer)
@@ -146,8 +135,28 @@ struct MaintenanceLogView: View {
                         }
                         Button("Create custom component", systemImage: "plus.circle") { activeSheet = .customComponent }
                     }
+                    Section {
+                        NavigationLink(value: Panel.components) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label("Components", systemImage: "chart.bar.xaxis")
+                                if let next = componentEstimates.first, let remaining = next.remainingDistance {
+                                    Text("\(next.componentTitle) · ~\(abs(remaining).formatted(.number.precision(.fractionLength(0)))) \(preferredUnit) \(remaining <= 0 ? "past average" : "left")")
+                                        .font(.caption)
+                                        .foregroundStyle(CycleWrenchStyle.statusColor(next.attention))
+                                }
+                            }
+                        }
+                        NavigationLink(value: Panel.history) {
+                            Label("Service history", systemImage: "clock.arrow.circlepath")
+                        }
+                    }
+
                 }
             }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(CycleWrenchStyle.canvas)
+            .navigationSplitViewColumnWidth(min: 320, ideal: 400, max: 480)
             .navigationTitle("CycleWrench")
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
@@ -163,6 +172,8 @@ struct MaintenanceLogView: View {
             .onChange(of: bike?.configuration) { refreshSelections() }
             .onChange(of: customComponents.map(\.id)) { refreshSelections() }
             .task {
+                // Revisiting the sidebar or unfolding must not clear a draft.
+                guard !didLoadStore else { return }
                 do {
                     try BikeStore.adoptLegacyEntries(in: context, preferredUnit: preferredUnit)
                     let stored = try context.fetch(FetchDescriptor<Bike>(sortBy: [SortDescriptor(\.name)]))
@@ -170,6 +181,7 @@ struct MaintenanceLogView: View {
                         selectedBikeID = current.id.uuidString
                         loadBike(current)
                     }
+                    didLoadStore = true
                 } catch { saveError = error.localizedDescription }
             }
             .onChange(of: bikes.map(\.id)) {
@@ -189,7 +201,20 @@ struct MaintenanceLogView: View {
             )) {
                 Button("OK", role: .cancel) { saveError = nil }
             } message: { Text(saveError ?? "Please try again.") }
+        } detail: {
+            if let bike {
+                switch selectedPanel ?? .components {
+                case .components:
+                    ComponentHealthView(bikeName: bike.name, estimates: componentEstimates)
+                case .history:
+                    ServiceHistoryView(bikeID: bike.id, bikeName: bike.name)
+                }
+            } else {
+                ContentUnavailableView("Add your first bike", systemImage: "bicycle",
+                    description: Text("Your components and maintenance history will appear here."))
+            }
         }
+        .navigationSplitViewStyle(.balanced)
     }
 
     @ViewBuilder
@@ -210,7 +235,10 @@ struct MaintenanceLogView: View {
                 }
             }
         case .customComponent:
-            CustomComponentEditorView { custom in
+            CustomComponentEditorView { created in
+                // Definitions can apply to another bike without entering this draft.
+                guard created.restrictions.matches(bike?.configuration ?? BikeConfiguration()) else { return }
+                let custom = created.descriptor
                 if let index = selections.firstIndex(where: { $0.componentID == nil }) {
                     selections[index].componentID = custom.id
                     selections[index].action = custom.defaultAction

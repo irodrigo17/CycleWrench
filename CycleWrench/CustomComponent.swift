@@ -7,11 +7,29 @@ final class CustomComponent {
     var name: String = ""
     var defaultActionRaw: String = "serviced"
     var hasPosition: Bool = false
+    var requiredDrive: String = "unspecified"
+    var requiredSuspension: String = "unspecified"
+    var requiredBrakes: String = "unspecified"
 
-    init(name: String, defaultAction: ServiceAction, hasPosition: Bool = false) {
+    var restrictions: ComponentRestrictions {
+        get {
+            ComponentRestrictions(drive: .init(rawValue: requiredDrive) ?? .unspecified,
+                suspension: .init(rawValue: requiredSuspension) ?? .unspecified,
+                brakes: .init(rawValue: requiredBrakes) ?? .unspecified)
+        }
+        set {
+            requiredDrive = newValue.drive.rawValue
+            requiredSuspension = newValue.suspension.rawValue
+            requiredBrakes = newValue.brakes.rawValue
+        }
+    }
+
+    init(name: String, defaultAction: ServiceAction, hasPosition: Bool = false,
+         restrictions: ComponentRestrictions = ComponentRestrictions()) {
         self.name = name
         defaultActionRaw = defaultAction.rawValue
         self.hasPosition = hasPosition
+        self.restrictions = restrictions
     }
 
     var descriptor: ComponentDescriptor {
@@ -64,7 +82,7 @@ struct ComponentDescriptor: Hashable, Identifiable {
 @MainActor
 enum CustomComponentStore {
     static func add(name: String, defaultAction: ServiceAction, hasPosition: Bool,
-                    in context: ModelContext) throws -> CustomComponent {
+                    restrictions: ComponentRestrictions = ComponentRestrictions(), in context: ModelContext) throws -> CustomComponent {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let existing = try context.fetch(FetchDescriptor<CustomComponent>())
         let names = existing.map(\.name) + ComponentKind.allCases.map(\.title) + BicycleComponent.allCases.map(\.title)
@@ -75,7 +93,7 @@ enum CustomComponentStore {
         guard !names.contains(where: { $0.localizedCaseInsensitiveCompare(name) == .orderedSame }) else {
             throw ComponentError.invalid("A component with that name already exists.")
         }
-        let component = CustomComponent(name: name, defaultAction: defaultAction, hasPosition: hasPosition)
+        let component = CustomComponent(name: name, defaultAction: defaultAction, hasPosition: hasPosition, restrictions: restrictions)
         context.insert(component)
         do { try context.save() } catch { context.rollback(); throw error }
         return component

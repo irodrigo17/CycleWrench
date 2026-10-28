@@ -7,8 +7,9 @@ struct CustomComponentEditorView: View {
     @State private var name = ""
     @State private var defaultAction = ServiceAction.serviced
     @State private var hasPosition = false
+    @State private var restrictions = ComponentRestrictions()
     @State private var errorMessage: String?
-    let onSave: (ComponentDescriptor) -> Void
+    let onSave: (CustomComponent) -> Void
 
     var body: some View {
         NavigationStack {
@@ -19,8 +20,27 @@ struct CustomComponentEditorView: View {
                 }
                 Toggle("Separate front and rear", isOn: $hasPosition)
                 Section {
-                    Text("Available in the component picker for all your bikes. You can change the action when logging work.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    Picker("Power", selection: $restrictions.drive) {
+                        ForEach(BikeConfiguration.Drive.allCases) { option in
+                            Text(option == .unspecified ? "Any power type" : option.title).tag(option)
+                        }
+                    }
+                    Picker("Suspension", selection: $restrictions.suspension) {
+                        ForEach(BikeConfiguration.Suspension.allCases) { option in
+                            Text(option == .unspecified ? "Any suspension" : option.title).tag(option)
+                        }
+                    }
+                    Picker("Brakes", selection: $restrictions.brakes) {
+                        ForEach(BikeConfiguration.Brakes.allCases) { option in
+                            Text(option == .unspecified ? "Any brakes" : option.title).tag(option)
+                        }
+                    }
+                } header: {
+                    Text("Bike restrictions (optional)")
+                } footer: {
+                    Text(restrictions.isUnrestricted
+                        ? "Available for all bikes. You can change the action when logging work."
+                        : "Only shown for matching bikes. Unset bike options keep components available until you choose a setup. Existing history is kept.")
                 }
             }
             .navigationTitle("Custom component")
@@ -32,8 +52,8 @@ struct CustomComponentEditorView: View {
                     Button("Add") {
                         do {
                             let custom = try CustomComponentStore.add(name: name, defaultAction: defaultAction,
-                                hasPosition: hasPosition, in: context)
-                            onSave(custom.descriptor)
+                                hasPosition: hasPosition, restrictions: restrictions, in: context)
+                            onSave(custom)
                             dismiss()
                         } catch { errorMessage = error.localizedDescription }
                     }

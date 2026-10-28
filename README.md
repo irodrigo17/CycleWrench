@@ -136,7 +136,21 @@ own action, defaulting to the usual work (e.g. replace chain/pads, service fork/
 so one save can mix replacements and services.
 
 Choose **Create custom component** to name a part, choose its default action and
-optionally track front and rear separately. Custom definitions are available
-across bikes and included in private iCloud sync. Stored history keeps the name
+optionally track front and rear separately. Custom definitions can be available to all bikes or restricted by power, suspension
+and brake setup, and are included in private iCloud sync. Stored history keeps the name
 and stable component identity even if its definition is later removed. Custom
 components participate in the same interval and remaining-distance calculations.
+
+## Adaptive layout
+
+The home screen follows Bike → Log maintenance → Components / Service history.
+`NavigationSplitView` keeps logging and review side by side when the window has
+space, and collapses into a navigation stack in narrow windows. It adapts to iPad
+multitasking, rotation and iPhone Duo display changes without device-name checks
+or fixed full-screen dimensions. Phone drafts and selected bike remain in the
+same view state while the available space changes.
+
+Custom component restrictions are optional and combined across power, suspension
+and brake type. Existing definitions migrate to all bikes. A bike with an unset
+setup field keeps matching options available until configured. Restrictions
+filter new logging choices and never hide or delete recorded history.
