@@ -6,53 +6,42 @@ struct MaintenanceLogView: View {
     @Query(sort: \ServiceEntry.date, order: .reverse) private var entries: [ServiceEntry]
     @Query(sort: \Bike.name) private var bikes: [Bike]
     @Query(sort: \OdometerReading.date, order: .reverse) private var readings: [OdometerReading]
+    @Query(sort: \CustomComponent.name) private var customComponents: [CustomComponent]
     @AppStorage("distanceUnit") private var preferredUnit = "km"
     @AppStorage("selectedBikeID") private var selectedBikeID = ""
-    @State private var showingAddBike = false
-    @State private var showingBikeSetup = false
-    @State private var showingSettings = false
-    @State private var odometerOnly = false
+    @State private var activeSheet: Sheet?
+    @State private var odometer = ""
+    @State private var selections = [ComponentSelection()]
+    @State private var saveError: String?
+    @FocusState private var odometerFocused: Bool
 
+    private enum Sheet: String, Identifiable {
+        case addBike, bikeSetup, settings, odometer, customComponent
+        var id: String { rawValue }
+    }
     private var bike: Bike? {
         bikes.first { $0.id.uuidString == selectedBikeID } ?? bikes.first
     }
-    private var bikeEntries: [ServiceEntry] {
-        guard let bike else { return [] }
-        return entries.filter { $0.bikeID == bike.id }.sorted {
-            if $0.dateIsKnown != $1.dateIsKnown { return $0.dateIsKnown }
-            if $0.dateIsKnown && $0.date != $1.date { return $0.date > $1.date }
-            if $0.odometer != $1.odometer { return $0.odometer > $1.odometer }
-            return $0.component < $1.component
-        }
-    }
-    private var bikeReadings: [OdometerReading] {
-        guard let bike else { return [] }
-        return readings.filter { $0.bikeID == bike.id }
-    }
+    private var bikeEntries: [ServiceEntry] { entries.filter { $0.bikeID == bike?.id } }
     private var componentEstimates: [ComponentEstimate] {
         guard let bike else { return [] }
         return ComponentEstimate.calculate(bikeID: bike.id, odometer: displayedOdometer(bike),
             unit: preferredUnit, events: bikeEntries.map(MaintenanceEvent.init))
     }
-    private var availableComponents: [ComponentKind] {
-        ComponentKind.allCases.filter { bike?.configuration.supports($0) ?? true }
+    private var availableComponents: [ComponentDescriptor] {
+        ComponentKind.allCases.filter { bike?.configuration.supports($0) ?? true }.map(ComponentDescriptor.init)
+            + customComponents.map(\.descriptor)
     }
-    private var canSave: Bool {
-        guard let bike, let distance, distance >= displayedOdometer(bike) else { return false }
-        return odometerOnly || (!selections.isEmpty && selections.allSatisfy {
-            guard let kind = $0.kind else { return false }
-            return availableComponents.contains(kind)
-        })
-    }
-    @State private var odometer = ""
-    @State private var selections = [ComponentSelection()]
-    @FocusState private var odometerFocused: Bool
-    @State private var action = ServiceAction.replaced
-    @State private var saveError: String?
-
     private var distance: Double? {
         guard let value = Double(odometer), value.isFinite, value >= 0 else { return nil }
         return value
+    }
+    private var canSave: Bool {
+        guard let bike, let distance, distance >= displayedOdometer(bike), !selections.isEmpty else { return false }
+        return selections.allSatisfy { descriptor(for: $0.componentID) != nil }
+    }
+    private func descriptor(for id: String?) -> ComponentDescriptor? {
+        availableComponents.first { $0.id == id }
     }
 
     var body: some View {
@@ -61,23 +50,28 @@ struct MaintenanceLogView: View {
                 Section("Bike") {
                     if !bikes.isEmpty {
                         Picker("Bike", selection: $selectedBikeID) {
-                            ForEach(bikes) { bike in
-                                Text(bike.name).tag(bike.id.uuidString)
-                            }
+                            ForEach(bikes) { Text($0.name).tag($0.id.uuidString) }
                         }
                         .pickerStyle(.menu)
                     }
                     HStack {
-                        Button("Add bike", systemImage: "plus") { showingAddBike = true }
+                        Button("Add bike", systemImage: "plus") { activeSheet = .addBike }
                         Spacer()
                         if bike != nil {
-                            Button("Bike setup", systemImage: "slider.horizontal.3") { showingBikeSetup = true }
+                            Button("Bike setup", systemImage: "slider.horizontal.3") { activeSheet = .bikeSetup }
                         }
                     }
                     .buttonStyle(.borderless)
                     if let bike {
-                        LabeledContent("Current odometer",
-                            value: "\(displayedOdometer(bike).formatted(.number.precision(.fractionLength(0...1)))) \(preferredUnit)")
+                        Button { activeSheet = .odometer } label: {
+                            HStack {
+                                Text("Current odometer").foregroundStyle(.primary)
+                                Spacer()
+                                Text("\(displayedOdometer(bike).formatted(.number.precision(.fractionLength(0...1)))) \(preferredUnit)")
+                                Image(systemName: "pencil").font(.caption)
+                            }
+                        }
+                        .accessibilityHint("Update this bike’s odometer")
                     }
                 }
                 if let bike {
@@ -88,143 +82,86 @@ struct MaintenanceLogView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Label("Components", systemImage: "chart.bar.xaxis")
                                 if let next = componentEstimates.first, let remaining = next.remainingDistance {
-                                    Text("\(next.component.title) · ~\(abs(remaining).formatted(.number.precision(.fractionLength(0)))) \(preferredUnit) \(remaining <= 0 ? "past average" : "left")")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                } else {
-                                    Text("Learn lifespans from your maintenance history")
+                                    Text("\(next.componentTitle) · ~\(abs(remaining).formatted(.number.precision(.fractionLength(0)))) \(preferredUnit) \(remaining <= 0 ? "past average" : "left")")
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                             }
                         }
-                    }
-                    Section {
-                        Picker("Entry", selection: $odometerOnly) {
-                            Text("Maintenance").tag(false)
-                            Text("Odometer only").tag(true)
+                        NavigationLink {
+                            ServiceHistoryView(bikeID: bike.id, bikeName: bike.name)
+                        } label: {
+                            Label("Service history", systemImage: "clock.arrow.circlepath")
                         }
-                        .pickerStyle(.segmented)
+                    }
+                    Section("Log maintenance") {
                         HStack {
-                            TextField("Current odometer", text: $odometer)
-                                .keyboardType(.decimalPad)
-                                .focused($odometerFocused)
-                                .accessibilityLabel("Current odometer")
+                            TextField("Odometer", text: $odometer)
+                                .keyboardType(.decimalPad).focused($odometerFocused)
+                                .accessibilityLabel("Maintenance odometer")
                             Text(preferredUnit).foregroundStyle(.secondary)
                         }
                         if let distance, distance < displayedOdometer(bike) {
                             Text("Enter a reading at least as high as the current odometer.")
                                 .font(.caption).foregroundStyle(.red)
                         }
-                        if !odometerOnly {
-                            Picker("Action", selection: $action) {
-                                ForEach(ServiceAction.loggableCases) { item in
-                                    Text(item.title).tag(item)
-                                }
-                            }
-                            ForEach($selections) { $selection in
-                                VStack(spacing: 12) {
-                                    Picker("Component", selection: $selection.kind) {
-                                        Text("Choose component").tag(nil as ComponentKind?)
-                                        ForEach(availableComponents) { kind in
-                                            Text(kind.title).tag(Optional(kind))
-                                        }
+                        ForEach($selections) { $selection in
+                            VStack(spacing: 12) {
+                                Picker("Component", selection: $selection.componentID) {
+                                    Text("Choose component").tag(nil as String?)
+                                    ForEach(availableComponents) { item in
+                                        Text(item.title).tag(Optional(item.id))
                                     }
-                                    .pickerStyle(.menu)
-
-                                    if selection.kind?.hasPosition == true {
+                                }
+                                .pickerStyle(.menu)
+                                .onChange(of: selection.componentID) {
+                                    if let item = descriptor(for: selection.componentID) {
+                                        selection.action = item.defaultAction
+                                    }
+                                }
+                                if let item = descriptor(for: selection.componentID) {
+                                    if item.hasPosition {
                                         Picker("Position", selection: $selection.position) {
-                                            ForEach(ComponentPosition.allCases) { position in
-                                                Text(position.title).tag(position)
-                                            }
+                                            ForEach(ComponentPosition.allCases) { Text($0.title).tag($0) }
                                         }
                                         .pickerStyle(.segmented)
                                     }
-                                    if selection.kind != nil {
-                                        TextField(selection.kind == .bearings
-                                            ? "Which bearings? (optional)" : "Notes (optional)",
-                                            text: $selection.notes, axis: .vertical)
-                                            .font(.subheadline)
+                                    Picker("Action", selection: $selection.action) {
+                                        ForEach(ServiceAction.loggableCases) { Text($0.title).tag($0) }
                                     }
-                                    if selections.count > 1 {
-                                        Button("Remove component", role: .destructive) {
-                                            selections.removeAll { $0.id == selection.id }
-                                        }
-                                        .font(.caption)
-                                        .frame(maxWidth: .infinity, alignment: .trailing)
+                                    TextField(item.builtIn == .bearings ? "Which bearings? (optional)" : "Notes (optional)",
+                                        text: $selection.notes, axis: .vertical)
+                                        .font(.subheadline)
+                                }
+                                if selections.count > 1 {
+                                    Button("Remove component", role: .destructive) {
+                                        selections.removeAll { $0.id == selection.id }
                                     }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                            Button("Add another component", systemImage: "plus") {
-                                selections.append(ComponentSelection())
-                            }
-                        }
-                    }
-
-                    Section("Service history") {
-                        if bikeEntries.isEmpty {
-                            ContentUnavailableView("Ready for your next tune-up",
-                                systemImage: "wrench.and.screwdriver",
-                                description: Text("Enter your odometer and select the parts you worked on."))
-                        }
-                        ForEach(bikeEntries) { entry in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(entry.componentTitle).font(.headline)
-                                Text("\(ServiceAction(rawValue: entry.action)?.title ?? entry.action.capitalized) · \(displayDistance(entry.odometer, from: entry.distanceUnit)) \(preferredUnit)")
-                                if !entry.notes.isEmpty {
-                                    Text(entry.notes).font(.subheadline).foregroundStyle(.secondary)
-                                }
-                                if entry.dateIsKnown {
-                                    Text(entry.date, style: .date)
-                                        .font(.caption).foregroundStyle(.secondary)
-                                } else {
-                                    Text("Date not recorded").font(.caption).foregroundStyle(.secondary)
+                                    .font(.caption).frame(maxWidth: .infinity, alignment: .trailing)
                                 }
                             }
+                            .padding(.vertical, 4)
                         }
-                    }
-                    if !bikeReadings.isEmpty {
-                        Section("Odometer history") {
-                            ForEach(bikeReadings) { reading in
-                                HStack {
-                                    Text(reading.date, style: .date)
-                                    Spacer()
-                                    Text("\(displayDistance(reading.distance, from: reading.distanceUnit)) \(preferredUnit)")
-                                }
-                            }
+                        Button("Add another component", systemImage: "plus") {
+                            selections.append(ComponentSelection())
                         }
+                        Button("Create custom component", systemImage: "plus.circle") { activeSheet = .customComponent }
                     }
                 }
-
             }
             .navigationTitle("CycleWrench")
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Settings", systemImage: "gearshape") { showingSettings = true }
-                        .labelStyle(.iconOnly)
+                    Button("Settings", systemImage: "gearshape") { activeSheet = .settings }.labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: save)
-                        .fontWeight(.semibold)
-                        .disabled(!canSave)
-                        .accessibilityLabel(odometerOnly ? "Save odometer" : "Save maintenance")
+                    Button("Save", action: save).fontWeight(.semibold)
+                        .disabled(!canSave).accessibilityLabel("Save maintenance")
                 }
             }
-            .sheet(isPresented: $showingSettings) { SettingsView() }
-            .sheet(isPresented: $showingAddBike) {
-                BikeEditorView(defaultUnit: preferredUnit) { newBike in
-                    selectedBikeID = newBike.id.uuidString
-                    loadBike(newBike)
-                }
-            }
-            .sheet(isPresented: $showingBikeSetup) {
-                if let bike {
-                    BikeEditorView(bike: bike, defaultUnit: preferredUnit) { _ in
-                        refreshSelections()
-                    }
-                }
-            }
+            .sheet(item: $activeSheet) { sheet in sheetView(sheet) }
             .onChange(of: bike?.configuration) { refreshSelections() }
+            .onChange(of: customComponents.map(\.id)) { refreshSelections() }
             .task {
                 do {
                     try BikeStore.adoptLegacyEntries(in: context, preferredUnit: preferredUnit)
@@ -241,20 +178,45 @@ struct MaintenanceLogView: View {
                     loadBike(bike)
                 }
             }
-            .onChange(of: preferredUnit) { oldUnit, newUnit in
-                if let distance, let converted = DistanceUnit.convert(distance, from: oldUnit, to: newUnit) {
+            .onChange(of: preferredUnit) { old, new in
+                if let distance, let converted = DistanceUnit.convert(distance, from: old, to: new) {
                     odometer = String(converted)
                 }
             }
-            .onChange(of: selectedBikeID) {
-                if let bike { loadBike(bike) }
-            }
+            .onChange(of: selectedBikeID) { if let bike { loadBike(bike) } }
             .alert("Couldn’t save changes", isPresented: Binding(
                 get: { saveError != nil }, set: { if !$0 { saveError = nil } }
             )) {
                 Button("OK", role: .cancel) { saveError = nil }
-            } message: {
-                Text(saveError ?? "Please try again.")
+            } message: { Text(saveError ?? "Please try again.") }
+        }
+    }
+
+    @ViewBuilder
+    private func sheetView(_ sheet: Sheet) -> some View {
+        switch sheet {
+        case .settings: SettingsView()
+        case .addBike:
+            BikeEditorView(defaultUnit: preferredUnit) {
+                selectedBikeID = $0.id.uuidString
+                loadBike($0)
+            }
+        case .bikeSetup:
+            if let bike { BikeEditorView(bike: bike, defaultUnit: preferredUnit) { _ in refreshSelections() } }
+        case .odometer:
+            if let bike {
+                UpdateOdometerView(bike: bike, current: displayedOdometer(bike), unit: preferredUnit) {
+                    odometer = String(displayedOdometer(bike))
+                }
+            }
+        case .customComponent:
+            CustomComponentEditorView { custom in
+                if let index = selections.firstIndex(where: { $0.componentID == nil }) {
+                    selections[index].componentID = custom.id
+                    selections[index].action = custom.defaultAction
+                } else {
+                    selections.append(ComponentSelection(componentID: custom.id, action: custom.defaultAction))
+                }
             }
         }
     }
@@ -263,45 +225,38 @@ struct MaintenanceLogView: View {
         DistanceUnit.convert(BikeStore.currentOdometer(for: bike, entries: entries, readings: readings),
                              from: bike.distanceUnit, to: preferredUnit) ?? bike.odometer
     }
-
-    private func displayDistance(_ distance: Double, from unit: String) -> String {
-        (DistanceUnit.convert(distance, from: unit, to: preferredUnit) ?? distance)
-            .formatted(.number.precision(.fractionLength(0...1)))
-    }
-
     private func loadBike(_ bike: Bike) {
         odometer = String(displayedOdometer(bike))
         selections = [ComponentSelection()]
         odometerFocused = false
     }
-
     private func refreshSelections() {
-        for index in selections.indices {
-            if let kind = selections[index].kind, !availableComponents.contains(kind) {
-                selections[index].kind = nil
-                selections[index].notes = ""
-            }
+        for index in selections.indices where descriptor(for: selections[index].componentID) == nil {
+            selections[index] = ComponentSelection()
         }
     }
-
-    private func notes(for component: BicycleComponent) -> String {
-        let notes = selections.filter { $0.kind?.components(at: $0.position).contains(component) == true }
-            .map { $0.notes.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        return Array(Set(notes)).sorted().joined(separator: "\n")
-    }
-
     private func save() {
         guard canSave, let bike, let distance else { return }
-        let selected = odometerOnly ? Set<BicycleComponent>() : Set(selections.flatMap { selection in
-            selection.kind?.components(at: selection.position) ?? []
-        })
         let date = Date()
         bike.odometer = DistanceUnit.convert(distance, from: preferredUnit, to: bike.distanceUnit) ?? distance
         context.insert(OdometerReading(bike: bike, date: date))
-        for component in BicycleComponent.allCases where selected.contains(component) {
-            context.insert(ServiceEntry(date: date, odometer: bike.odometer,
-                distanceUnit: bike.distanceUnit, component: component, action: action, bikeID: bike.id,
-                notes: notes(for: component)))
+        // Deduplicate identical component/action pairs while allowing different actions.
+        var pending: [String: (LoggedComponent, ServiceAction, Set<String>)] = [:]
+        for selection in selections {
+            guard let item = descriptor(for: selection.componentID) else { continue }
+            for component in item.components(at: selection.position) {
+                let key = "\(component.id)/\(selection.action.rawValue)"
+                var notes = pending[key]?.2 ?? []
+                let note = selection.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !note.isEmpty { notes.insert(note) }
+                pending[key] = (component, selection.action, notes)
+            }
+        }
+        for key in pending.keys.sorted() {
+            guard let (component, action, notes) = pending[key] else { continue }
+            context.insert(ServiceEntry(date: date, odometer: bike.odometer, distanceUnit: bike.distanceUnit,
+                componentID: component.id, componentName: component.title, action: action, bikeID: bike.id,
+                notes: notes.sorted().joined(separator: "\n")))
         }
         do {
             try context.save()
@@ -316,7 +271,8 @@ struct MaintenanceLogView: View {
 
 private struct ComponentSelection: Identifiable {
     let id = UUID()
-    var kind: ComponentKind?
+    var componentID: String?
+    var action = ServiceAction.replaced
     var position = ComponentPosition.front
     var notes = ""
 }
