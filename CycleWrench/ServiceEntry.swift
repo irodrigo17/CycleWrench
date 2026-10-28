@@ -105,9 +105,11 @@ final class ServiceEntry {
     var distanceUnit: String
     var component: String
     var action: String
+    var bikeID: UUID? = nil
 
     init(date: Date, odometer: Double, distanceUnit: String,
-         component: BicycleComponent, action: ServiceAction) {
+         component: BicycleComponent, action: ServiceAction, bikeID: UUID? = nil) {
+        self.bikeID = bikeID
         self.date = date
         self.odometer = odometer
         self.distanceUnit = distanceUnit

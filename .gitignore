@@ -6,3 +6,6 @@ build/
 xcuserdata/
 *.xcuserstate
 .DS_Store
+
+# Local agent scratch files
+work/

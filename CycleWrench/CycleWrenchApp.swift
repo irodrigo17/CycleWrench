@@ -7,6 +7,6 @@ struct CycleWrenchApp: App {
         WindowGroup {
             MaintenanceLogView()
         }
-        .modelContainer(for: ServiceEntry.self)
+        .modelContainer(for: [Bike.self, ServiceEntry.self, OdometerReading.self])
     }
 }

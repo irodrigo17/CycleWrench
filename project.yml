@@ -23,8 +23,19 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.sports
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+  CycleWrenchTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [CycleWrenchTests]
+    dependencies:
+      - target: CycleWrench
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.irodrigo17.CycleWrenchTests
 schemes:
   CycleWrench:
     build:
       targets:
         CycleWrench: all
+    test:
+      targets: [CycleWrenchTests]

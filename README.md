@@ -31,10 +31,12 @@ GitHub Actions regenerates the project and compiles for the iOS simulator.
 
 ## Initial scope
 
-This starter supports one bicycle, kilometer/mile readings, multi-component
-logging for a shared action, local persistence and dated history.
+Supports multiple named bicycles, a fixed kilometer/mile unit per bike, independent
+odometers and service histories, multi-component logging, and odometer-only updates.
+Readings cannot decrease. Existing history is adopted into a “My bike” record on first launch.
+This is an additive SwiftData migration; original component identifiers and readings are preserved.
 
-Next: editing/deleting entries, multiple bicycles, export/backup and component
+Next: editing/deleting entries, bike renaming, export/backup and component
 lifespan estimates from completed replacement intervals. Estimates must exclude
 unknown initial lifetimes and separate servicing from replacement.
 
@@ -49,3 +51,16 @@ through TestFlight. The repository scaffold is not a release-ready submission.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Tests
+
+Choose an installed simulator and run:
+
+```sh
+make generate
+xcodebuild -project CycleWrench.xcodeproj -scheme CycleWrench \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+```
+
+Tests cover migration from the original on-disk schema, idempotent legacy
+adoption with mixed distance units, and odometer updates isolated by bike.
