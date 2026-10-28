@@ -62,18 +62,28 @@ through TestFlight. The repository scaffold is not a release-ready submission.
 
 MIT. See [LICENSE](LICENSE).
 
-## Tests
-
-Choose an installed simulator and run:
+## Tests and CI
 
 ```sh
-make generate
-xcodebuild -project CycleWrench.xcodeproj -scheme CycleWrench \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+make test
 ```
 
-Tests cover migration from the original on-disk schema, idempotent legacy
-adoption with mixed distance units, and odometer updates isolated by bike.
+This regenerates the project, selects an installed iPhone simulator, and builds
+and runs the unit tests with coverage. Override the device if needed:
+
+```sh
+make test DESTINATION='platform=iOS Simulator,id=YOUR_SIMULATOR_UUID'
+```
+
+GitHub Actions runs the same command on pushes and pull requests, using a macOS
+runner and an available iPhone simulator. Test results and coverage are uploaded
+as an `.xcresult` artifact for seven days, including on failure. No signing keys
+or Apple account secrets are needed. Manual runs are available in Actions.
+
+Tests cover store migrations, multi-bike isolation, odometer-only updates,
+component filtering, custom components, imports and lifespan calculations.
+Automated test hosts use in-memory storage; fixtures use synthetic test bikes.
+Manual app checks must use a test bike, never the rider's Orbea Wild.
 
 ## iCloud
 
@@ -102,3 +112,16 @@ intervals require actual odometer records, just like other components.
 
 New setup fields migrate additively with an `unspecified` default and sync through
 CloudKit alongside the bike. Configuring bikes remains optional.
+
+## Simple logging
+
+Tap **Current odometer** to update mileage without service. **Service history**
+opens a secondary screen alongside Components. Every selected component has its
+own action, defaulting to the usual work (e.g. replace chain/pads, service fork/shock),
+so one save can mix replacements and services.
+
+Choose **Create custom component** to name a part, choose its default action and
+optionally track front and rear separately. Custom definitions are available
+across bikes and included in private iCloud sync. Stored history keeps the name
+and stable component identity even if its definition is later removed. Custom
+components participate in the same interval and remaining-distance calculations.

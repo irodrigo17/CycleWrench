@@ -7,6 +7,8 @@ odometer → select serviced/replaced components → save → history.
 - Swift 6, SwiftUI, SwiftData; minimum iOS 17.
 - Run `make generate` after modifying `project.yml` or adding/removing files.
 - Run `make build` to verify compilation without signing.
+- Run `make test` for regression tests; CI runs it on pushes and pull requests.
+- Use synthetic/test bikes for all testing. Never modify Orbea Wild for tests.
 - Edit `project.yml`; generated Xcode projects are ignored.
 - Keep dependencies minimal. No account or network service is required.
 - Preserve persisted component raw values and plan migrations for schema changes.

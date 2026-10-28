@@ -1,15 +1,39 @@
-name: iOS build
+name: iOS CI
+
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
-    runs-on: macos-15
+  test:
+    name: Build and unit tests
+    runs-on: macos-26
+    timeout-minutes: 25
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - name: Show Xcode version
+        run: xcodebuild -version
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Build simulator app
-        run: make build
+      - name: Select iPhone simulator
+        run: echo "SIMULATOR_ID=$(python3 scripts/select_simulator.py)" >> "$GITHUB_ENV"
+      - name: Build and test with coverage
+        run: make test RESULT_BUNDLE_PATH=build/TestResults.xcresult
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: build/TestResults.xcresult
+          if-no-files-found: warn
+          retention-days: 7
