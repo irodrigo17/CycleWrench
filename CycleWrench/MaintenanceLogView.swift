@@ -6,7 +6,8 @@ struct MaintenanceLogView: View {
     @Query(sort: \ServiceEntry.date, order: .reverse) private var entries: [ServiceEntry]
     @AppStorage("distanceUnit") private var unit = "km"
     @State private var odometer = ""
-    @State private var selected: Set<BicycleComponent> = []
+    @State private var selections = [ComponentSelection()]
+    @FocusState private var odometerFocused: Bool
     @State private var action = ServiceAction.replaced
     @State private var saveError: String?
 
@@ -22,6 +23,7 @@ struct MaintenanceLogView: View {
                     HStack {
                         TextField("Current odometer", text: $odometer)
                             .keyboardType(.decimalPad)
+                            .focused($odometerFocused)
                             .accessibilityLabel("Current odometer")
                         Picker("Unit", selection: $unit) {
                             Text("km").tag("km")
@@ -35,26 +37,38 @@ struct MaintenanceLogView: View {
                             Text(item.title).tag(item)
                         }
                     }
-                    ForEach(BicycleComponent.allCases) { component in
-                        Button {
-                            if selected.contains(component) {
-                                selected.remove(component)
-                            } else {
-                                selected.insert(component)
-                            }
-                        } label: {
-                            HStack {
-                                Text(component.title).foregroundStyle(.primary)
-                                Spacer()
-                                if selected.contains(component) {
-                                    Image(systemName: "checkmark").foregroundStyle(.tint)
+                    ForEach($selections) { $selection in
+                        VStack(spacing: 12) {
+                            Picker("Component", selection: $selection.kind) {
+                                Text("Choose component").tag(nil as ComponentKind?)
+                                ForEach(ComponentKind.allCases) { kind in
+                                    Text(kind.title).tag(Optional(kind))
                                 }
                             }
+                            .pickerStyle(.menu)
+
+                            if selection.kind?.hasPosition == true {
+                                Picker("Position", selection: $selection.position) {
+                                    ForEach(ComponentPosition.allCases) { position in
+                                        Text(position.title).tag(position)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                            if selections.count > 1 {
+                                Button("Remove component", role: .destructive) {
+                                    selections.removeAll { $0.id == selection.id }
+                                }
+                                .font(.caption)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
                         }
-                        .accessibilityAddTraits(selected.contains(component) ? .isSelected : [])
+                        .padding(.vertical, 4)
                     }
-                    Button("Save maintenance", action: save)
-                        .disabled(distance == nil || selected.isEmpty)
+                    Button("Add another component", systemImage: "plus") {
+                        selections.append(ComponentSelection())
+                    }
+
                 }
 
                 Section("History") {
@@ -74,6 +88,15 @@ struct MaintenanceLogView: View {
                 }
             }
             .navigationTitle("CycleWrench")
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save", action: save)
+                        .fontWeight(.semibold)
+                        .disabled(distance == nil || selections.contains { $0.kind == nil })
+                        .accessibilityLabel("Save maintenance")
+                }
+            }
             .alert("Couldn’t save maintenance", isPresented: Binding(
                 get: { saveError != nil }, set: { if !$0 { saveError = nil } }
             )) {
@@ -85,7 +108,12 @@ struct MaintenanceLogView: View {
     }
 
     private func save() {
-        guard let distance, !selected.isEmpty else { return }
+        guard let distance, !selections.isEmpty,
+              selections.allSatisfy({ $0.kind != nil }) else { return }
+        // Overlapping selections (e.g. both tires plus front tire) log each part once.
+        let selected = Set(selections.flatMap { selection in
+            selection.kind?.components(at: selection.position) ?? []
+        })
         let date = Date()
         for component in BicycleComponent.allCases where selected.contains(component) {
             context.insert(ServiceEntry(date: date, odometer: distance,
@@ -93,10 +121,17 @@ struct MaintenanceLogView: View {
         }
         do {
             try context.save()
-            selected.removeAll()
+            selections = [ComponentSelection()]
+            odometerFocused = false
         } catch {
             context.rollback()
             saveError = error.localizedDescription
         }
     }
+}
+
+private struct ComponentSelection: Identifiable {
+    let id = UUID()
+    var kind: ComponentKind?
+    var position = ComponentPosition.front
 }
