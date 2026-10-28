@@ -6,12 +6,12 @@ struct AddBikeView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var odometer = "0"
-    @State private var unit: String
+    let unit: String
     @State private var saveError: String?
     let onSave: (Bike) -> Void
 
     init(defaultUnit: String, onSave: @escaping (Bike) -> Void) {
-        _unit = State(initialValue: defaultUnit)
+        unit = defaultUnit
         self.onSave = onSave
     }
 
@@ -25,10 +25,8 @@ struct AddBikeView: View {
             Form {
                 TextField("Bike name", text: $name)
                 TextField("Current odometer", text: $odometer).keyboardType(.decimalPad)
-                Picker("Distance unit", selection: $unit) {
-                    Text("Kilometers").tag("km")
-                    Text("Miles").tag("mi")
-                }
+                LabeledContent("Distance unit", value: unit)
+
             }
             .navigationTitle("Add bike")
             .toolbar {
@@ -51,7 +49,7 @@ struct AddBikeView: View {
     private func save() {
         guard let distance else { return }
         let bike = Bike(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                        distanceUnit: unit, odometer: distance)
+                        distanceUnit: "km", odometer: DistanceUnit.convert(distance, from: unit, to: "km") ?? distance)
         context.insert(bike)
         do {
             try context.save()

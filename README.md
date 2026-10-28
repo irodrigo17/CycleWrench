@@ -31,14 +31,24 @@ GitHub Actions regenerates the project and compiles for the iOS simulator.
 
 ## Initial scope
 
-Supports multiple named bicycles, a fixed kilometer/mile unit per bike, independent
+Supports multiple named bicycles, an app-wide kilometer/mile display setting, independent
 odometers and service histories, multi-component logging, and odometer-only updates.
 Readings cannot decrease. Existing history is adopted into a “My bike” record on first launch.
 This is an additive SwiftData migration; original component identifiers and readings are preserved.
 
-Next: editing/deleting entries, bike renaming, export/backup and component
-lifespan estimates from completed replacement intervals. Estimates must exclude
-unknown initial lifetimes and separate servicing from replacement.
+Component estimates show the average completed interval, sample count, distance
+since the latest event and approximate distance remaining. The Components screen
+sorts by remaining distance, with unknown intervals last. Approaching average means
+20% or less of the historical average remains; passing it is not a wear measurement.
+At least two records are needed. Replacement life and servicing intervals are
+separate, and a replacement breaks the service cycle. Time/hour-based suspension
+limits are not inferred from distance.
+
+Settings applies kilometers or miles across all bikes and history. Existing stored
+units are retained and explicitly converted before display and interval calculation.
+New bikes store kilometers internally.
+
+Next: editing/deleting entries, bike renaming, and export/backup.
 
 ## Distribution
 

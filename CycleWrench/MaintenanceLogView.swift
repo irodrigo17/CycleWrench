@@ -9,6 +9,7 @@ struct MaintenanceLogView: View {
     @AppStorage("distanceUnit") private var preferredUnit = "km"
     @AppStorage("selectedBikeID") private var selectedBikeID = ""
     @State private var showingAddBike = false
+    @State private var showingSettings = false
     @State private var odometerOnly = false
 
     private var bike: Bike? { bikes.first { $0.id.uuidString == selectedBikeID } }
@@ -20,8 +21,13 @@ struct MaintenanceLogView: View {
         guard let bike else { return [] }
         return readings.filter { $0.bikeID == bike.id }
     }
+    private var componentEstimates: [ComponentEstimate] {
+        guard let bike else { return [] }
+        return ComponentEstimate.calculate(bikeID: bike.id, odometer: displayedOdometer(bike),
+            unit: preferredUnit, events: bikeEntries.map(MaintenanceEvent.init))
+    }
     private var canSave: Bool {
-        guard let bike, let distance, distance >= bike.odometer else { return false }
+        guard let bike, let distance, distance >= displayedOdometer(bike) else { return false }
         return odometerOnly || (!selections.isEmpty && selections.allSatisfy { $0.kind != nil })
     }
     @State private var odometer = ""
@@ -50,10 +56,26 @@ struct MaintenanceLogView: View {
                     Button("Add bike", systemImage: "plus") { showingAddBike = true }
                     if let bike {
                         LabeledContent("Current odometer",
-                            value: "\(bike.odometer.formatted()) \(bike.distanceUnit)")
+                            value: "\(displayedOdometer(bike).formatted(.number.precision(.fractionLength(0...1)))) \(preferredUnit)")
                     }
                 }
                 if let bike {
+                    Section {
+                        NavigationLink {
+                            ComponentHealthView(bikeName: bike.name, estimates: componentEstimates)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label("Components", systemImage: "chart.bar.xaxis")
+                                if let next = componentEstimates.first, let remaining = next.remainingDistance {
+                                    Text("\(next.component.title) · ~\(abs(remaining).formatted(.number.precision(.fractionLength(0)))) \(preferredUnit) \(remaining <= 0 ? "past average" : "left")")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                } else {
+                                    Text("Learn lifespans from your maintenance history")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
                     Section {
                         Picker("Entry", selection: $odometerOnly) {
                             Text("Maintenance").tag(false)
@@ -65,9 +87,9 @@ struct MaintenanceLogView: View {
                                 .keyboardType(.decimalPad)
                                 .focused($odometerFocused)
                                 .accessibilityLabel("Current odometer")
-                            Text(bike.distanceUnit).foregroundStyle(.secondary)
+                            Text(preferredUnit).foregroundStyle(.secondary)
                         }
-                        if let distance, distance < bike.odometer {
+                        if let distance, distance < displayedOdometer(bike) {
                             Text("Enter a reading at least as high as the current odometer.")
                                 .font(.caption).foregroundStyle(.red)
                         }
@@ -120,7 +142,7 @@ struct MaintenanceLogView: View {
                         ForEach(bikeEntries) { entry in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(entry.componentTitle).font(.headline)
-                                Text("\(entry.action.capitalized) · \(entry.odometer.formatted()) \(entry.distanceUnit)")
+                                Text("\(entry.action.capitalized) · \(displayDistance(entry.odometer, from: entry.distanceUnit)) \(preferredUnit)")
                                 Text(entry.date, style: .date)
                                     .font(.caption).foregroundStyle(.secondary)
                             }
@@ -132,7 +154,7 @@ struct MaintenanceLogView: View {
                                 HStack {
                                     Text(reading.date, style: .date)
                                     Spacer()
-                                    Text("\(reading.distance.formatted()) \(reading.distanceUnit)")
+                                    Text("\(displayDistance(reading.distance, from: reading.distanceUnit)) \(preferredUnit)")
                                 }
                             }
                         }
@@ -143,6 +165,10 @@ struct MaintenanceLogView: View {
             .navigationTitle("CycleWrench")
             .scrollDismissesKeyboard(.interactively)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Settings", systemImage: "gearshape") { showingSettings = true }
+                        .labelStyle(.iconOnly)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
                         .fontWeight(.semibold)
@@ -150,6 +176,7 @@ struct MaintenanceLogView: View {
                         .accessibilityLabel(odometerOnly ? "Save odometer" : "Save maintenance")
                 }
             }
+            .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingAddBike) {
                 AddBikeView(defaultUnit: preferredUnit) { newBike in
                     selectedBikeID = newBike.id.uuidString
@@ -166,6 +193,11 @@ struct MaintenanceLogView: View {
                     }
                 } catch { saveError = error.localizedDescription }
             }
+            .onChange(of: preferredUnit) { oldUnit, newUnit in
+                if let distance, let converted = DistanceUnit.convert(distance, from: oldUnit, to: newUnit) {
+                    odometer = String(converted)
+                }
+            }
             .onChange(of: selectedBikeID) {
                 if let bike { loadBike(bike) }
             }
@@ -179,8 +211,17 @@ struct MaintenanceLogView: View {
         }
     }
 
+    private func displayedOdometer(_ bike: Bike) -> Double {
+        DistanceUnit.convert(bike.odometer, from: bike.distanceUnit, to: preferredUnit) ?? bike.odometer
+    }
+
+    private func displayDistance(_ distance: Double, from unit: String) -> String {
+        (DistanceUnit.convert(distance, from: unit, to: preferredUnit) ?? distance)
+            .formatted(.number.precision(.fractionLength(0...1)))
+    }
+
     private func loadBike(_ bike: Bike) {
-        odometer = String(bike.odometer)
+        odometer = String(displayedOdometer(bike))
         selections = [ComponentSelection()]
         odometerFocused = false
     }
@@ -191,12 +232,12 @@ struct MaintenanceLogView: View {
             selection.kind?.components(at: selection.position) ?? []
         })
         let date = Date()
-        bike.odometer = distance
+        bike.odometer = DistanceUnit.convert(distance, from: preferredUnit, to: bike.distanceUnit) ?? distance
         if odometerOnly {
             context.insert(OdometerReading(bike: bike, date: date))
         }
         for component in BicycleComponent.allCases where selected.contains(component) {
-            context.insert(ServiceEntry(date: date, odometer: distance,
+            context.insert(ServiceEntry(date: date, odometer: bike.odometer,
                 distanceUnit: bike.distanceUnit, component: component, action: action, bikeID: bike.id))
         }
         do {
