@@ -1,5 +1,11 @@
 # CycleWrench
 
+[![iOS CI](https://github.com/irodrigo17/CycleWrench/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/irodrigo17/CycleWrench/actions/workflows/build.yml)
+[![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](https://www.swift.org/)
+[![iOS 17+](https://img.shields.io/badge/iOS-17%2B-007AFF?logo=apple&logoColor=white)](project.yml)
+[![MIT License](https://img.shields.io/github/license/irodrigo17/CycleWrench?color=blue)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/irodrigo17/CycleWrench)](https://github.com/irodrigo17/CycleWrench/commits/main/)
+
 A simple, local-first bicycle maintenance journal for iOS.
 Enter your current odometer, select the components you replaced or serviced,
 and save. View your maintenance history in one list.
