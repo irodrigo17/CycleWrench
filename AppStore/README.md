@@ -1,6 +1,6 @@
 # CycleWrench App Store media
 
-- `Icon/CycleWrench-1024.png`: opaque 1024×1024 app icon master.
+- `Icon/CycleWrench-1024.png`: selected sculpted cream/forest/copper MTB icon, opaque 1024×1024.
 - `Launch/LaunchScreen.storyboard`: native adaptive launch screen handoff.
 - `Screenshots/iPhone/`: real app captures at 1206×2622 pixels.
 - `Screenshots/iPad/`: real app captures at 2064×2752 pixels.

@@ -7,15 +7,15 @@ Prepared October 27, 2026 from Apple's current [asset best practices](https://de
 | Asset | File(s) | Specification / purpose |
 |---|---|---|
 | App icon | `AppStore/Icon/CycleWrench-1024.png` | 1024×1024 opaque RGB PNG, square canvas; iOS applies its own mask |
-| Native launch screen | `AppStore/Launch/LaunchScreen.storyboard` | Adaptive grouped background, light/dark and orientation aware, no text/logo/delay |
+| Native launch screen | `AppStore/Launch/LaunchScreen.storyboard` | Adaptive warm ivory / forest background, light/dark and orientation aware, no text/logo/delay |
 | iPhone screenshots | `AppStore/Screenshots/iPhone/01-home.png` through `04-custom-components.png` | 1206×2622 opaque PNG, Dynamic Island medium display |
 | iPad screenshots | `AppStore/Screenshots/iPad/01-home.png` through `04-custom-components.png` | 2064×2752 opaque PNG, iPad 13-inch display |
 | Capture data | `AppStore/Capture/TestBike.json` | Synthetic **Test bike** only, with demonstration dates and odometers |
 | Generation record | `AppStore/Icon/Prompt.md` | Final icon prompt, tool and size normalization details |
 
-The icon uses a white pedal-bicycle/wrench mark against cobalt blue. Large rounded
-strokes and a restrained two-color treatment keep it recognizable at Home Screen
-and search sizes. The icon master has no outer rounded corners or transparency.
+The selected icon uses a sculpted cream full-suspension bicycle and copper wrench
+against a forest gradient. Broad tires, a small rear-shock cue and flat handlebars
+suggest a mountain bike while keeping a clear silhouette at small sizes. The icon master has no outer rounded corners or transparency.
 It was made with the built-in image generation tool; it is not an Icon Composer
 layered document. Layered, dark and tinted artwork can be considered separately.
 
@@ -27,7 +27,7 @@ layered document. Layered, dark and tinted artwork can be considered separately.
    since work, and remaining distance sorted by earliest attention.
 3. **Service history:** the real dated maintenance list.
 4. **Custom components:** name, default action and optional independent front/rear
-   tracking in the actual creation screen.
+   tracking, plus optional bike compatibility restrictions, in the actual creation screen.
 
 These are full, unaltered app screenshots captured through XCUITest. They contain
 no generated interface, device frame, invented state, unverified integration
@@ -45,7 +45,8 @@ families. Original XCUITest attachments and capture harness remain in ignored
 
 Apple recommends a launch screen that resembles the initial UI and avoids logos
 or fixed text. CycleWrench should reach the maintenance form immediately, so the
-handoff is an adaptive `systemGroupedBackgroundColor` storyboard. It intentionally
+handoff is an adaptive `CanvasColor` storyboard (warm ivory in light mode and
+matte forest in dark mode). It intentionally
 adds no extra splash screen or timed animation. See [Apple's launching guidance](https://developer.apple.com/design/human-interface-guidelines/launching).
 
 The launch resource is integrated at `CycleWrench/LaunchScreen.storyboard` and
@@ -82,3 +83,43 @@ not required for the current October 2026 handoff; revisit before a later releas
   entitlements, signed-device sync, app privacy answers, or App Review acceptance.
 
 No upload, submission, or external publication was performed by the design agent.
+
+## Final adaptive-layout verification
+
+After the split-layout revision, isolated iPad captures show logging/sidebar on the
+left and selected Components or Service history on the right. Phone captures keep
+the single-column flow and reordered sections. A synthetic unsaved `2400` odometer
+draft survived navigation into Components and History and back on both iPhone
+and iPad. Each device family passed both capture and draft-retention UI tests. The final capture set includes the forest/sage/ochre styling, stronger odometer
+numerals and personal-estimate cards. The screenshots use native 9:41 status-bar
+overrides and full battery.
+
+### iPhone Duo coverage
+
+An isolated iPhone Duo on iOS 27.1 exposes outer display ID `1` / `primary` at
+1398×2034 and inner display ID `3` / `primary-1` at 2007×2853 through public
+`simctl io ... enumerate`. The actual app was visually checked on the outer
+screen, including native vertical system/toolbar controls and compact navigation.
+
+The default simulator pose is closed. Capturing the inactive inner screen returns
+a black framebuffer. `simctl` currently has no public pose/fold command; changing
+display power is not a valid substitute for hinge/pose simulation. Inner-display,
+open/partially-folded and hinge-transition checks therefore remain explicit manual
+Device Hub checks, not completed coverage. Do not publish a black framebuffer or
+claim a resized phone screenshot demonstrates the inner layout.
+
+[Apple: Prepare your app for iPhone Duo](https://developer.apple.com/videos/play/tech-talks/111461/)
+describes the Device Hub open/close/rotate/fold controls and adaptive size-class
+behavior. The physical pose is not inferred from a geometry change.
+
+## Icon review alternatives
+
+`AppStore/Icon/Variants/` contains four calm palette variants. The user selected
+forest/cream as a direction, then requested richer, more creative, multicolor
+alternatives. Those are in `AppStore/Icon/Concepts/`: enamel workshop, woven trail
+patch and sculpted bicycle/tool. The user selected the sculpted concept and asked
+for restrained full-suspension mountain-bike cues. The resulting
+`AppStore/Icon/CycleWrench-MTB-1024.png` is integrated as the active
+`CycleWrench-1024.png` master and app icon. Earlier variants remain review archives.
+Prompt sets and tool details are recorded in each folder's README and
+`AppStore/Icon/MTB-Refinement-Prompt.md`.

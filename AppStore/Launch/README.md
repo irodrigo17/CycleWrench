@@ -1,7 +1,7 @@
 # Launch screen design
 
 `LaunchScreen.storyboard` fills the screen with adaptive
-`systemGroupedBackgroundColor`. It has no text, logo, artificial delay, or layout
+`CanvasColor` (warm ivory in light mode, matte forest in dark mode). It has no text, logo, artificial delay, or layout
 that could flash against the native Form UI. The same resource supports light,
 dark, portrait and landscape appearances.
 
