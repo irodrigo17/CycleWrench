@@ -7,7 +7,7 @@ enum BicycleComponent: String, CaseIterable, Identifiable, Codable {
     case frontBrakePads, rearBrakePads, frontRotor, rearRotor
     case frontTire, rearTire, bottomBracket, headset
     case frontHub, rearHub, fork, rearShock, dropperPost
-    case bearings, frontBrakeFluid, rearBrakeFluid
+    case bearings, frontBrakeFluid, rearBrakeFluid, motor, battery
 
     var id: String { rawValue }
     var title: String {
@@ -31,6 +31,8 @@ enum BicycleComponent: String, CaseIterable, Identifiable, Codable {
         case .bearings: "Bearings"
         case .frontBrakeFluid: "Front brake bleed"
         case .rearBrakeFluid: "Rear brake bleed"
+        case .motor: "Motor"
+        case .battery: "Battery"
         }
     }
 }
@@ -40,6 +42,7 @@ enum BicycleComponent: String, CaseIterable, Identifiable, Codable {
 enum ComponentKind: String, CaseIterable, Identifiable {
     case brakePads, chain, fork, rearShock, tires, dropperPost
     case cassette, chainrings, rotors, brakeBleed, bearings, hubs, bottomBracket, headset
+    case motor, battery
 
     var id: String { rawValue }
     var title: String {
@@ -56,6 +59,8 @@ enum ComponentKind: String, CaseIterable, Identifiable {
         case .brakeBleed: "Brake bleed"
         case .bearings: "Bearings"
         case .hubs: "Wheel hubs"
+        case .motor: "Motor"
+        case .battery: "Battery"
         case .bottomBracket: "Bottom bracket"
         case .headset: "Headset"
         }
@@ -77,6 +82,8 @@ enum ComponentKind: String, CaseIterable, Identifiable {
         case .hubs: pair = (.frontHub, .rearHub)
         case .brakeBleed: pair = (.frontBrakeFluid, .rearBrakeFluid)
         case .bearings: return [.bearings]
+        case .motor: return [.motor]
+        case .battery: return [.battery]
         case .chain: return [.chain]
         case .fork: return [.fork]
         case .rearShock: return [.rearShock]

@@ -110,6 +110,7 @@ final class BikeStoreTests: XCTestCase {
         XCTAssertEqual(bike.name, "Existing bike")
         XCTAssertEqual(bike.distanceUnit, "mi")
         XCTAssertEqual(bike.odometer, 600)
+        XCTAssertEqual(bike.configuration, BikeConfiguration())
         XCTAssertEqual(entry.bikeID, id)
         XCTAssertEqual(entry.component, "rearBrakePads")
         XCTAssertEqual(entry.odometer, 500)

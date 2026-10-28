@@ -67,7 +67,7 @@ final class ServiceLogImporterTests: XCTestCase {
         let archive = try ServiceLogArchive.decode(data)
         XCTAssertNotNil(archive.records[0].date)
         XCTAssertEqual(archive.records[0].notes, "Lower leg service")
-        let invalid = Data(String(decoding: data, as: UTF8.self).replacingOccurrences(of: "fork", with: "motor").utf8)
+        let invalid = Data(String(decoding: data, as: UTF8.self).replacingOccurrences(of: "fork", with: "motorcycleEngine").utf8)
         XCTAssertThrowsError(try ServiceLogArchive.decode(invalid))
     }
 }

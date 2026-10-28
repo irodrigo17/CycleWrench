@@ -9,6 +9,7 @@ struct MaintenanceLogView: View {
     @AppStorage("distanceUnit") private var preferredUnit = "km"
     @AppStorage("selectedBikeID") private var selectedBikeID = ""
     @State private var showingAddBike = false
+    @State private var showingBikeSetup = false
     @State private var showingSettings = false
     @State private var odometerOnly = false
 
@@ -33,9 +34,15 @@ struct MaintenanceLogView: View {
         return ComponentEstimate.calculate(bikeID: bike.id, odometer: displayedOdometer(bike),
             unit: preferredUnit, events: bikeEntries.map(MaintenanceEvent.init))
     }
+    private var availableComponents: [ComponentKind] {
+        ComponentKind.allCases.filter { bike?.configuration.supports($0) ?? true }
+    }
     private var canSave: Bool {
         guard let bike, let distance, distance >= displayedOdometer(bike) else { return false }
-        return odometerOnly || (!selections.isEmpty && selections.allSatisfy { $0.kind != nil })
+        return odometerOnly || (!selections.isEmpty && selections.allSatisfy {
+            guard let kind = $0.kind else { return false }
+            return availableComponents.contains(kind)
+        })
     }
     @State private var odometer = ""
     @State private var selections = [ComponentSelection()]
@@ -60,7 +67,14 @@ struct MaintenanceLogView: View {
                         }
                         .pickerStyle(.menu)
                     }
-                    Button("Add bike", systemImage: "plus") { showingAddBike = true }
+                    HStack {
+                        Button("Add bike", systemImage: "plus") { showingAddBike = true }
+                        Spacer()
+                        if bike != nil {
+                            Button("Bike setup", systemImage: "slider.horizontal.3") { showingBikeSetup = true }
+                        }
+                    }
+                    .buttonStyle(.borderless)
                     if let bike {
                         LabeledContent("Current odometer",
                             value: "\(displayedOdometer(bike).formatted(.number.precision(.fractionLength(0...1)))) \(preferredUnit)")
@@ -110,7 +124,7 @@ struct MaintenanceLogView: View {
                                 VStack(spacing: 12) {
                                     Picker("Component", selection: $selection.kind) {
                                         Text("Choose component").tag(nil as ComponentKind?)
-                                        ForEach(ComponentKind.allCases) { kind in
+                                        ForEach(availableComponents) { kind in
                                             Text(kind.title).tag(Optional(kind))
                                         }
                                     }
@@ -198,11 +212,19 @@ struct MaintenanceLogView: View {
             }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingAddBike) {
-                AddBikeView(defaultUnit: preferredUnit) { newBike in
+                BikeEditorView(defaultUnit: preferredUnit) { newBike in
                     selectedBikeID = newBike.id.uuidString
                     loadBike(newBike)
                 }
             }
+            .sheet(isPresented: $showingBikeSetup) {
+                if let bike {
+                    BikeEditorView(bike: bike, defaultUnit: preferredUnit) { _ in
+                        refreshSelections()
+                    }
+                }
+            }
+            .onChange(of: bike?.configuration) { refreshSelections() }
             .task {
                 do {
                     try BikeStore.adoptLegacyEntries(in: context, preferredUnit: preferredUnit)
@@ -251,6 +273,15 @@ struct MaintenanceLogView: View {
         odometer = String(displayedOdometer(bike))
         selections = [ComponentSelection()]
         odometerFocused = false
+    }
+
+    private func refreshSelections() {
+        for index in selections.indices {
+            if let kind = selections[index].kind, !availableComponents.contains(kind) {
+                selections[index].kind = nil
+                selections[index].notes = ""
+            }
+        }
     }
 
     private func notes(for component: BicycleComponent) -> String {

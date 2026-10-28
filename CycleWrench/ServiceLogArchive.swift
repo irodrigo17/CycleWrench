@@ -8,6 +8,7 @@ struct ServiceLogArchive: Codable {
     var bikeName: String
     var distanceUnit: String
     var records: [Record]
+    var configuration: BikeConfiguration? = nil
 
     struct Record: Codable {
         var id: String
@@ -64,6 +65,9 @@ enum ServiceLogImporter {
         if !bikes.contains(where: { $0.id == archive.id }) {
             bike.id = archive.id
             context.insert(bike)
+        }
+        if let configuration = archive.configuration {
+            bike.configuration = bike.configuration.fillingUnspecified(from: configuration)
         }
         var count = 0
         for record in archive.records {

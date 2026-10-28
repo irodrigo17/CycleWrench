@@ -88,3 +88,17 @@ Use Settings → Import service log for a JSON archive. See [the import format](
 Undated entries retain their odometers and show “Date not recorded”. Bearings
 support freeform notes for frame pivots or any other assembly. Personal archives
 are excluded from the repository; no rider's actual service history is shipped.
+
+## Bike setup
+
+Add a bike or choose **Bike setup** next to the bike selector to edit its name,
+power type, suspension and brakes. Motor and battery are available for electric
+bikes; hardtails omit the rear shock and rigid bikes omit both suspension parts.
+Disc rotors are hidden for rim brakes, and bleeding is hidden for mechanical
+brakes. Unset fields keep options available until the rider chooses a setup.
+Existing service history and component estimates are never deleted or hidden by
+setup changes. Battery and motor work can include notes, e.g. warranty replacement;
+intervals require actual odometer records, just like other components.
+
+New setup fields migrate additively with an `unspecified` default and sync through
+CloudKit alongside the bike. Configuring bikes remains optional.

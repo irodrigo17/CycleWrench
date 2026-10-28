@@ -7,11 +7,30 @@ final class Bike {
     var name: String = ""
     var distanceUnit: String = "km"
     var odometer: Double = 0
+    // Additive scalar fields keep older stores and private CloudKit compatible.
+    var driveType: String = "unspecified"
+    var suspensionType: String = "unspecified"
+    var brakeType: String = "unspecified"
 
-    init(name: String, distanceUnit: String = "km", odometer: Double = 0) {
+    var configuration: BikeConfiguration {
+        get {
+            BikeConfiguration(drive: .init(rawValue: driveType) ?? .unspecified,
+                suspension: .init(rawValue: suspensionType) ?? .unspecified,
+                brakes: .init(rawValue: brakeType) ?? .unspecified)
+        }
+        set {
+            driveType = newValue.drive.rawValue
+            suspensionType = newValue.suspension.rawValue
+            brakeType = newValue.brakes.rawValue
+        }
+    }
+
+    init(name: String, distanceUnit: String = "km", odometer: Double = 0,
+         configuration: BikeConfiguration = BikeConfiguration()) {
         self.name = name
         self.distanceUnit = distanceUnit
         self.odometer = odometer
+        self.configuration = configuration
     }
 }
 

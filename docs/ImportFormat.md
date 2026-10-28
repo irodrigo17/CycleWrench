@@ -56,3 +56,18 @@ For development automation, a Debug-only `CYCLEWRENCH_IMPORT_ARCHIVE` launch
 environment variable accepts base64-encoded archive JSON and uses the same
 validated importer. Release builds do not read this variable. Do not add personal
 archives to shared schemes, tests, fixtures, or Git commits.
+
+Archives may include an optional `configuration` object alongside `records`:
+
+```json
+"configuration": {
+  "drive": "electric",
+  "suspension": "fullSuspension",
+  "brakes": "hydraulicDisc"
+}
+```
+
+Valid values are the raw enum cases in `BikeConfiguration.swift`. Configuration
+only fills fields that are still unspecified; reimporting cannot overwrite a
+rider's setup choices. `motor` and `battery` are supported component identifiers.
+History imports remain valid even if a past component is hidden by today's setup.
